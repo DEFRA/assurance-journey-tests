@@ -6,15 +6,14 @@
  * WEBDRIVERIO TEST BEST PRACTICES:
  *
  * 1. Assertions:
- *    - Use expect(value).toBe(), expect(value).toContain() etc. for direct assertions
+ *    - Use await expect(value).toBe(), await expect(value).toContain() etc. for ALL assertions in WebdriverIO
  *    - For element assertions, use await expect(element).toBeDisplayed(), await expect(element).toHaveText() etc.
- *    - For URL checks, use: const url = await browser.getUrl(); expect(url).toContain('xyz')
- *    - For attribute checks, use: const attr = await element.getAttribute('href'); expect(attr).toEqual('xyz')
+ *    - For URL checks, use: const url = await browser.getUrl(); await expect(url).toContain('xyz')
+ *    - For attribute checks, use: const attr = await element.getAttribute('href'); await expect(attr).toEqual('xyz')
  *
  * 2. Flexible tests:
  *    - Check for element existence with: if (await element.isExisting())
  *    - Use conditional logic to handle different states (authenticated vs unauthenticated)
- *    - Add logging with console.log() to understand test flow
  *
  * 3. Waiting:
  *    - Wait for elements with waitForDisplayed(), waitForExist(), etc.
@@ -54,7 +53,7 @@ describe('Home page', () => {
   it('should have the correct page title', async () => {
     // Using the correct WebdriverIO assertion pattern
     const title = await browser.getTitle()
-    expect(title).toBe('Home | DDTS Assurance')
+    await expect(title).toBe('Home | DDTS Assurance')
   })
 
   it('should display the main heading "Projects"', async () => {
@@ -88,7 +87,7 @@ describe('Home page', () => {
 
       // Fix: Using proper URL assertion
       const currentUrl = await browser.getUrl()
-      expect(currentUrl).toContain('?search=My+Searched+Project')
+      await expect(currentUrl).toContain('?search=My+Searched+Project')
     })
 
     it('should display a "Clear search" link after a search is performed', async () => {
@@ -102,7 +101,7 @@ describe('Home page', () => {
 
       // Fix: Check only that href ends with '/' rather than the full URL
       const href = await clearSearchLink.getAttribute('href')
-      expect(href).toEqual('/')
+      await expect(href).toEqual('/')
     })
 
     it('should clear the search term and results when "Clear search" is clicked', async () => {
@@ -116,7 +115,7 @@ describe('Home page', () => {
 
       // Fix: Using proper URL assertion
       const currentUrl = await browser.getUrl()
-      expect(currentUrl).not.toContain('?search=')
+      await expect(currentUrl).not.toContain('?search=')
 
       const currentSearchInput = await $('#search') // Re-fetch the element
       await expect(currentSearchInput).toHaveValue('') // Input should be cleared
@@ -162,11 +161,11 @@ describe('Home page', () => {
 
         // Fix: Properly check the href attribute
         const href = await projectNameLink.getAttribute('href')
-        expect(href).toMatch(/\/projects\/\w+/)
+        await expect(href).toMatch(/\/projects\/\w+/)
 
         await expect(ragStatusTag).toBeDisplayed()
         const ragStatus = await ragStatusTag.getText()
-        expect(ragStatus).toMatch(/^(RED|AMBER|GREEN)$/)
+        await expect(ragStatus).toMatch(/^(RED|AMBER|GREEN)$/)
       }
     })
 
@@ -184,7 +183,7 @@ describe('Home page', () => {
 
         // Fix: Use proper URL assertion
         const currentUrl = await browser.getUrl()
-        expect(currentUrl).toContain(`/projects/${projectId}`)
+        await expect(currentUrl).toContain(`/projects/${projectId}`)
       }
     })
 
@@ -233,7 +232,7 @@ describe('Home page', () => {
 
         // Fix: Use proper URL assertion
         const currentUrl = await browser.getUrl()
-        expect(currentUrl).toContain('/projects/add')
+        await expect(currentUrl).toContain('/projects/add')
       }
     })
 
@@ -245,12 +244,10 @@ describe('Home page', () => {
 
       if (authenticated) {
         // If authenticated, button should be functional
-
         await expect(addButton).toBeDisplayed()
         await expect(addButton).toBeClickable()
       } else {
         // If not authenticated, button should not exist
-
         await expect(addButton).not.toBeExisting()
       }
     })
@@ -286,11 +283,10 @@ describe('Home page', () => {
 
         // Fix: Check for URL rather than title
         const currentUrl = await browser.getUrl()
-        expect(currentUrl).toContain('/projects/')
+        await expect(currentUrl).toContain('/projects/')
 
-        // Optionally, if you want to check the page title contains project name
         const pageTitle = await browser.getTitle()
-        expect(pageTitle).toContain(suggestionText)
+        await expect(pageTitle).toContain(suggestionText)
       }
     })
   })
