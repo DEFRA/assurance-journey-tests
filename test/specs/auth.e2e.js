@@ -24,30 +24,97 @@ const getCredentials = () => {
  * Helper function to wait for and handle the username screen
  */
 async function handleUsernameScreen() {
-  // Wait for page to be ready and stable
+  // Wait for page to be ready and stable with a longer timeout for remote environments
   await browser.waitUntil(
     async () => {
       const readyState = await browser.execute(() => document.readyState)
       return readyState === 'complete'
     },
     {
-      timeout: 10000,
+      timeout: 30000, // Increased timeout for remote environments
       timeoutMsg: 'Page did not load completely'
     }
   )
 
-  // Wait for email input field and ensure it's interactable
-  const emailInput = await $('input[type="email"]')
-  await expect(emailInput).toBeDisplayed()
-  await expect(emailInput).toBeEnabled()
+  // Try multiple selectors for the email input field
+  const emailSelectors = [
+    'input[type="email"]',
+    'input[name="loginfmt"]',
+    'input[type="email"][name="loginfmt"]',
+    '#i0116', // Microsoft's specific ID for email input
+    'input[data-bind*="email"]'
+  ]
+
+  let emailInput = null
+  for (const selector of emailSelectors) {
+    try {
+      const element = await $(selector)
+      if (await element.isDisplayed()) {
+        emailInput = element
+        break
+      }
+    } catch (e) {
+      // Continue to next selector
+      continue
+    }
+  }
+
+  if (!emailInput) {
+    // Take screenshot for debugging
+    await browser.takeScreenshot()
+    throw new Error('Could not find email input field on Microsoft login page')
+  }
+
+  // Additional wait to ensure the field is truly ready
+  await browser.waitUntil(
+    async () => {
+      try {
+        return (
+          (await emailInput.isEnabled()) && (await emailInput.isDisplayed())
+        )
+      } catch (e) {
+        return false
+      }
+    },
+    {
+      timeout: 20000,
+      timeoutMsg: 'Email input field not ready for interaction'
+    }
+  )
 
   // Clear any existing value and enter username
   await emailInput.clearValue()
   const { username } = getCredentials()
   await emailInput.setValue(username)
 
-  // Find and click Next button
-  const nextButton = await $('input[type="submit"]')
+  // Find and click Next button - try multiple selectors
+  const nextButtonSelectors = [
+    'input[type="submit"]',
+    '#idSIButton9', // Microsoft's specific ID for next button
+    'input[value="Next"]',
+    'input[value="Sign in"]'
+  ]
+
+  let nextButton = null
+  for (const selector of nextButtonSelectors) {
+    try {
+      const element = await $(selector)
+      if (await element.isDisplayed()) {
+        nextButton = element
+        break
+      }
+    } catch (e) {
+      // Continue to next selector
+      continue
+    }
+  }
+
+  if (!nextButton) {
+    // Take screenshot for debugging
+    await browser.takeScreenshot()
+    throw new Error('Could not find Next button on Microsoft login page')
+  }
+
   await expect(nextButton).toBeDisplayed()
   await expect(nextButton).toBeEnabled()
   await nextButton.click()
