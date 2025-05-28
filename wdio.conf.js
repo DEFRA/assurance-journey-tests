@@ -2,18 +2,6 @@ import fs from 'node:fs'
 
 const oneMinute = 60 * 1000
 
-let chromeProxyConfig = {}
-if (process.env.HTTP_PROXY) {
-  const url = new URL(process.env.HTTP_PROXY)
-  chromeProxyConfig = {
-    proxy: {
-      proxyType: 'manual',
-      httpProxy: `${url.host}:${url.port}`,
-      sslProxy: `${url.host}:${url.port}`
-    }
-  }
-}
-
 export const config = {
   //
   // ====================
@@ -40,26 +28,30 @@ export const config = {
 
   capabilities: [
     {
-      ...chromeProxyConfig,
-      ...{
-        browserName: 'chrome',
-        'goog:chromeOptions': {
-          args: [
-            '--no-sandbox',
-            '--disable-infobars',
-            '--headless',
-            '--disable-gpu',
-            '--window-size=1920,1080',
-            '--enable-features=NetworkService,NetworkServiceInProcess',
-            '--password-store=basic',
-            '--use-mock-keychain',
-            '--dns-prefetch-disable',
-            '--disable-background-networking',
-            '--disable-remote-fonts',
-            '--ignore-certificate-errors',
-            '--disable-dev-shm-usage'
-          ]
+      ...(process.env.HTTP_PROXY && {
+        proxy: {
+          proxyType: 'manual',
+          httpProxy: new URL(process.env.HTTP_PROXY).host,
+          sslProxy: new URL(process.env.HTTP_PROXY).host
         }
+      }),
+      browserName: 'chrome',
+      'goog:chromeOptions': {
+        args: [
+          '--no-sandbox',
+          '--disable-infobars',
+          '--headless',
+          '--disable-gpu',
+          '--window-size=1920,1080',
+          '--enable-features=NetworkService,NetworkServiceInProcess',
+          '--password-store=basic',
+          '--use-mock-keychain',
+          '--dns-prefetch-disable',
+          '--disable-background-networking',
+          '--disable-remote-fonts',
+          '--ignore-certificate-errors',
+          '--disable-dev-shm-usage'
+        ]
       }
     }
   ],
