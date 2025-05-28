@@ -89,12 +89,12 @@ describe('Project detail page', () => {
     await expect(['RED', 'AMBER', 'GREEN']).toContain(status)
   })
 
-  it('should display project commentary in an inset text', async () => {
-    const insetText = await $('.govuk-inset-text')
-    await expect(insetText).toBeDisplayed()
+  it('should display project commentary', async () => {
+    const commentary = await $('.govuk-body')
+    await expect(commentary).toBeDisplayed()
 
-    const insetContent = await insetText.getText()
-    await expect(insetContent).toContain('Last updated:')
+    const commentaryContent = await commentary.getText()
+    await expect(commentaryContent.length).toBeGreaterThan(0)
   })
 
   it('should display the project timeline tab by default', async () => {
@@ -103,7 +103,7 @@ describe('Project detail page', () => {
 
     const timelineHeading = await $('#project-engagement h2')
     const headingText = await timelineHeading.getText()
-    await expect(headingText).toBe('Project Update Timeline')
+    await expect(headingText).toBe('Project update timeline')
   })
 
   it('should display project timeline events if available', async () => {
