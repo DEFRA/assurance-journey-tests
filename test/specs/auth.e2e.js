@@ -31,30 +31,82 @@ async function handleUsernameScreen() {
       return readyState === 'complete'
     },
     {
-      timeout: 30000, // Increased timeout for remote environments
+      timeout: 30000,
       timeoutMsg: 'Page did not load completely'
+    }
+  )
+
+  // Wait for Microsoft login page to be fully loaded
+  await browser.waitUntil(
+    async () => {
+      const url = await browser.getUrl()
+      return (
+        url.includes('login.microsoftonline.com') ||
+        url.includes('microsoft.com/') ||
+        url.includes('login.live.com')
+      )
+    },
+    {
+      timeout: 30000,
+      timeoutMsg: 'Not redirected to Microsoft login page'
+    }
+  )
+
+  // Wait for the page to be fully interactive
+  await browser.waitUntil(
+    async () => {
+      try {
+        // Try to find any input field on the page
+        const inputs = await $$('input')
+        return inputs.length > 0
+      } catch (e) {
+        return false
+      }
+    },
+    {
+      timeout: 30000,
+      timeoutMsg: 'Page not interactive'
     }
   )
 
   // Try multiple selectors for the email input field
   const emailSelectors = [
+    '#i0116', // Microsoft's specific ID for email input
     'input[type="email"]',
     'input[name="loginfmt"]',
     'input[type="email"][name="loginfmt"]',
-    '#i0116', // Microsoft's specific ID for email input
-    'input[data-bind*="email"]'
+    'input[data-bind*="email"]',
+    'input[placeholder*="email" i]',
+    'input[placeholder*="account" i]',
+    'input[aria-label*="email" i]',
+    'input[aria-label*="account" i]',
+    'input[type="text"]',
+    'input[name="email"]',
+    'input[id*="email"]',
+    'input[id*="account"]'
   ]
 
   let emailInput = null
   for (const selector of emailSelectors) {
     try {
       const element = await $(selector)
-      if (await element.isDisplayed()) {
-        emailInput = element
-        break
-      }
+      // Wait for element to be displayed
+      await browser.waitUntil(
+        async () => {
+          try {
+            return await element.isDisplayed()
+          } catch (e) {
+            return false
+          }
+        },
+        {
+          timeout: 5000,
+          timeoutMsg: `Element ${selector} not displayed`
+        }
+      )
+      emailInput = element
+      break
     } catch (e) {
-      // Continue to next selector
       continue
     }
   }
@@ -89,22 +141,38 @@ async function handleUsernameScreen() {
 
   // Find and click Next button - try multiple selectors
   const nextButtonSelectors = [
-    'input[type="submit"]',
     '#idSIButton9', // Microsoft's specific ID for next button
+    'input[type="submit"]',
     'input[value="Next"]',
-    'input[value="Sign in"]'
+    'input[value="Sign in"]',
+    'input[type="submit"][value="Next"]',
+    'input[type="submit"][value="Sign in"]',
+    'button[type="submit"]',
+    'button:contains("Next")',
+    'button:contains("Sign in")'
   ]
 
   let nextButton = null
   for (const selector of nextButtonSelectors) {
     try {
       const element = await $(selector)
-      if (await element.isDisplayed()) {
-        nextButton = element
-        break
-      }
+      // Wait for element to be displayed
+      await browser.waitUntil(
+        async () => {
+          try {
+            return await element.isDisplayed()
+          } catch (e) {
+            return false
+          }
+        },
+        {
+          timeout: 5000,
+          timeoutMsg: `Element ${selector} not displayed`
+        }
+      )
+      nextButton = element
+      break
     } catch (e) {
-      // Continue to next selector
       continue
     }
   }
