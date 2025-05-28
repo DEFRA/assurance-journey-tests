@@ -38,21 +38,8 @@ async function handleUsernameScreen() {
 
   // Wait for email input field and ensure it's interactable
   const emailInput = await $('input[type="email"]')
-  await emailInput.waitForDisplayed({
-    timeout: 10000,
-    timeoutMsg: 'Email input field not displayed'
-  })
-
-  // Additional check to ensure the field is truly ready
-  await browser.waitUntil(
-    async () => {
-      return (await emailInput.isEnabled()) && (await emailInput.isDisplayed())
-    },
-    {
-      timeout: 10000,
-      timeoutMsg: 'Email input field not ready for interaction'
-    }
-  )
+  await expect(emailInput).toBeDisplayed()
+  await expect(emailInput).toBeEnabled()
 
   // Clear any existing value and enter username
   await emailInput.clearValue()
@@ -61,40 +48,13 @@ async function handleUsernameScreen() {
 
   // Find and click Next button
   const nextButton = await $('input[type="submit"]')
-  await nextButton.waitForDisplayed({
-    timeout: 10000,
-    timeoutMsg: 'Next button not displayed'
-  })
-
-  // Additional check to ensure button is clickable
-  await browser.waitUntil(
-    async () => {
-      return (await nextButton.isEnabled()) && (await nextButton.isDisplayed())
-    },
-    {
-      timeout: 10000,
-      timeoutMsg: 'Next button not ready for interaction'
-    }
-  )
-
-  // Click the button and wait for navigation
+  await expect(nextButton).toBeDisplayed()
+  await expect(nextButton).toBeEnabled()
   await nextButton.click()
 
   // Wait for navigation to complete and password field to appear
-  await browser.waitUntil(
-    async () => {
-      try {
-        const passwordInput = await $('input[type="password"]')
-        return await passwordInput.isDisplayed()
-      } catch (e) {
-        return false
-      }
-    },
-    {
-      timeout: 20000,
-      timeoutMsg: 'Password field did not appear after username entry'
-    }
-  )
+  const passwordInput = await $('input[type="password"]')
+  await expect(passwordInput).toBeDisplayed()
 }
 
 /**
@@ -115,23 +75,8 @@ async function handlePasswordScreen() {
 
   // Wait for password input field and ensure it's interactable
   const passwordInput = await $('input[type="password"]')
-  await passwordInput.waitForDisplayed({
-    timeout: 10000,
-    timeoutMsg: 'Password input field not displayed'
-  })
-
-  // Additional check to ensure the field is truly ready
-  await browser.waitUntil(
-    async () => {
-      return (
-        (await passwordInput.isEnabled()) && (await passwordInput.isDisplayed())
-      )
-    },
-    {
-      timeout: 10000,
-      timeoutMsg: 'Password input field not ready for interaction'
-    }
-  )
+  await expect(passwordInput).toBeDisplayed()
+  await expect(passwordInput).toBeEnabled()
 
   // Clear any existing value and enter password
   await passwordInput.clearValue()
@@ -139,24 +84,8 @@ async function handlePasswordScreen() {
 
   // Find and click Sign in button
   const signInButton = await $('input[type="submit"]')
-  await signInButton.waitForDisplayed({
-    timeout: 10000,
-    timeoutMsg: 'Sign in button not displayed'
-  })
-
-  // Additional check to ensure button is clickable
-  await browser.waitUntil(
-    async () => {
-      return (
-        (await signInButton.isEnabled()) && (await signInButton.isDisplayed())
-      )
-    },
-    {
-      timeout: 10000,
-      timeoutMsg: 'Sign in button not ready for interaction'
-    }
-  )
-
+  await expect(signInButton).toBeDisplayed()
+  await expect(signInButton).toBeEnabled()
   await signInButton.click()
 
   // Wait for navigation to complete
@@ -193,8 +122,8 @@ async function handleAuthorizationScreen() {
 
   // Wait for and click the Continue button
   const continueButton = await $('input[type="submit"]')
-  await continueButton.waitForDisplayed({ timeout: 10000 })
-  await continueButton.waitForClickable({ timeout: 10000 })
+  await expect(continueButton).toBeDisplayed()
+  await expect(continueButton).toBeEnabled()
   await continueButton.click()
 
   // Wait for navigation to complete
@@ -228,8 +157,8 @@ async function handleStaySignedInScreen() {
 
   // Wait for and click the Yes button
   const yesButton = await $('input[type="submit"]')
-  await yesButton.waitForDisplayed({ timeout: 10000 })
-  await yesButton.waitForClickable({ timeout: 10000 })
+  await expect(yesButton).toBeDisplayed()
+  await expect(yesButton).toBeEnabled()
   await yesButton.click()
 
   // Wait for navigation to complete, including the appverify page
@@ -349,7 +278,7 @@ describe('Authentication', () => {
       const addButton = await $(
         'a.govuk-button--secondary[href="/projects/add"]'
       )
-      await addButton.waitForDisplayed({ timeout: 10000 })
+      await expect(addButton).toBeDisplayed()
       await addButton.click()
 
       // Wait for add project page to load
@@ -366,21 +295,22 @@ describe('Authentication', () => {
       // Fill in project details
       const projectName = `Test Project ${Date.now()}` // Unique name
       const nameInput = await $('input[name="name"]')
+      await expect(nameInput).toBeDisplayed()
       await nameInput.setValue(projectName)
 
       // Wait for status select to be ready and check available options
       const statusSelect = await $('select[name="status"]')
-      await statusSelect.waitForDisplayed({ timeout: 10000 })
-
-      // Try selecting by index (first option)
+      await expect(statusSelect).toBeDisplayed()
       await statusSelect.selectByIndex(1)
 
       // Add project commentary
       const commentaryInput = await $('textarea[name="commentary"]')
+      await expect(commentaryInput).toBeDisplayed()
       await commentaryInput.setValue('Initial project commentary for testing')
 
       // Submit the form
       const submitButton = await $('button[type="submit"]')
+      await expect(submitButton).toBeDisplayed()
       await submitButton.click()
 
       // Wait for redirect to home page
@@ -402,7 +332,7 @@ describe('Authentication', () => {
 
       // Find and click the newly created project
       const projectLink = await $(`a.govuk-link*=${projectName}`)
-      await projectLink.waitForDisplayed({ timeout: 10000 })
+      await expect(projectLink).toBeDisplayed()
       await projectLink.click()
 
       // Wait for project page to load
@@ -417,23 +347,18 @@ describe('Authentication', () => {
         }
       )
 
-      // Click edit button (robust selector)
+      // Click edit button
       const editButton = await $('a.govuk-button--secondary=Edit project')
-      await editButton.waitForDisplayed({ timeout: 20000 })
+      await expect(editButton).toBeDisplayed()
       await editButton.click()
 
       // Wait for edit form to appear
-      await $('#status').waitForDisplayed({ timeout: 10000 })
+      const statusField = await $('#status')
+      await expect(statusField).toBeDisplayed()
 
-      // Update status to AMBER (robust, case-insensitive)
+      // Update status to AMBER
       const editStatusSelect = await $('#status')
-      await browser.waitUntil(
-        async () => {
-          const options = await editStatusSelect.$$('option')
-          return options.length > 1
-        },
-        { timeout: 5000, timeoutMsg: 'Status options did not load' }
-      )
+      await expect(editStatusSelect).toBeDisplayed()
 
       // Select AMBER option
       const options = await editStatusSelect.$$('option')
@@ -452,11 +377,12 @@ describe('Authentication', () => {
 
       // Update commentary
       const editCommentaryInput = await $('#commentary')
+      await expect(editCommentaryInput).toBeDisplayed()
       await editCommentaryInput.setValue('Updated project commentary')
 
-      // Save changes (robust selector)
+      // Save changes
       const saveButton = await $('button.govuk-button=Save Delivery Status')
-      await saveButton.waitForDisplayed({ timeout: 10000 })
+      await expect(saveButton).toBeDisplayed()
       await saveButton.click()
 
       // Wait for redirect back to project page
@@ -471,20 +397,27 @@ describe('Authentication', () => {
         }
       )
 
-      // Click edit button (robust selector)
+      // Click edit button again
       const editButton2 = await $('a.govuk-button--secondary=Edit project')
-      await editButton2.waitForDisplayed({ timeout: 10000 })
+      await expect(editButton2).toBeDisplayed()
       await editButton2.click()
-      await $('#status').waitForDisplayed({ timeout: 10000 })
+
+      // Wait for edit form
+      const statusField2 = await $('#status')
+      await expect(statusField2).toBeDisplayed()
 
       // Switch to the Profession Updates tab
       const professionsTab2 = await $('a[role="tab"][id*="professions"]')
-      await professionsTab2.waitForDisplayed({ timeout: 10000 })
+      await expect(professionsTab2).toBeDisplayed()
       await professionsTab2.click()
-      await $('#profession').waitForDisplayed({ timeout: 10000 })
+
+      // Wait for profession field
+      const professionField = await $('#profession')
+      await expect(professionField).toBeDisplayed()
 
       // Fill in the profession update form
       const professionSelect2 = await $('#profession')
+      await expect(professionSelect2).toBeDisplayed()
       const professionOptions2 = await professionSelect2.$$('option')
       if (professionOptions2.length < 2) {
         throw new Error('No selectable professions available in the dropdown.')
@@ -492,6 +425,7 @@ describe('Authentication', () => {
       await professionOptions2[1].click() // Select the first real profession
 
       const professionStatusSelect2 = await $('#profession-status')
+      await expect(professionStatusSelect2).toBeDisplayed()
       const professionStatusOptions2 =
         await professionStatusSelect2.$$('option')
       if (professionStatusOptions2.length < 2) {
@@ -502,19 +436,21 @@ describe('Authentication', () => {
       await professionStatusOptions2[1].click() // Select the first real status
 
       const professionCommentaryInput2 = await $('#profession-commentary')
+      await expect(professionCommentaryInput2).toBeDisplayed()
       await professionCommentaryInput2.setValue(
         'Initial profession status update'
       )
 
-      // Use correct case for button text
+      // Add profession update
       const addProfessionButton2 = await $(
         'button.govuk-button=Add Profession Update'
       )
-      await addProfessionButton2.waitForDisplayed({ timeout: 10000 })
+      await expect(addProfessionButton2).toBeDisplayed()
       await addProfessionButton2.click()
 
       // Verify status was updated
       const statusTag = await $('.govuk-tag.govuk-tag--large')
+      await expect(statusTag).toBeDisplayed()
       await expect(statusTag).toHaveText('AMBER')
     })
   })
