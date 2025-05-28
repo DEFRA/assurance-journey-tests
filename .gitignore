@@ -11,3 +11,6 @@ coverage
 allure-report/
 allure-results/
 FAILED
+.png*
+screenshots/
+.env
