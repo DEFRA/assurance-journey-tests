@@ -1039,6 +1039,9 @@ describe('Authentication', () => {
                   }
                 }
 
+                // Fill commentary based on status
+                const selectedStatusValue = backendValue
+
                 // Wait for commentary fields to appear (they're shown/hidden based on status)
                 await browser.waitUntil(
                   async () => {
@@ -1063,9 +1066,6 @@ describe('Authentication', () => {
                     timeoutMsg: 'Commentary fields not displayed'
                   }
                 )
-
-                // Fill commentary based on status
-                const selectedStatusValue = backendValue
 
                 if (selectedStatusValue === 'GREEN') {
                   // Green status: single field for "what's in place"
