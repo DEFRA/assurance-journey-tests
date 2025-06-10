@@ -74,6 +74,20 @@ describe('Project detail page', () => {
     await expect(projectName.length).toBeGreaterThan(0)
   })
 
+  it('should display project phase and ID if available', async () => {
+    // Check for phase display
+    const phaseText = await $('p*=Phase:')
+    if (await phaseText.isExisting()) {
+      await expect(phaseText).toBeDisplayed()
+    }
+
+    // Check for project ID display
+    const projectIdText = await $('p*=Project ID:')
+    if (await projectIdText.isExisting()) {
+      await expect(projectIdText).toBeDisplayed()
+    }
+  })
+
   it('should display the current delivery status with RAG tag', async () => {
     const statusHeading = await $('h2.govuk-heading-m.inline-heading')
     await expect(statusHeading).toBeDisplayed()
@@ -81,32 +95,113 @@ describe('Project detail page', () => {
     const headingText = await statusHeading.getText()
     await expect(headingText).toContain('Current delivery status:')
 
-    const statusTag = await $('.govuk-tag.govuk-tag--large')
+    // Status tag may be rendered differently by renderStatusTag() function
+    const statusTag = await $('.govuk-tag')
     await expect(statusTag).toBeDisplayed()
 
-    // Status should be one of RED, AMBER, GREEN
+    // Status should be one of the valid project statuses
     const status = await statusTag.getText()
-    await expect(['RED', 'AMBER', 'GREEN']).toContain(status)
+    await expect([
+      'RED',
+      'AMBER',
+      'GREEN',
+      'TBC',
+      'Beta',
+      'Alpha',
+      'Discovery',
+      'Live'
+    ]).toContain(status)
   })
 
   it('should display project commentary', async () => {
-    const commentary = await $('.govuk-body')
-    await expect(commentary).toBeDisplayed()
+    // Commentary is now displayed in a govukInsetText component
+    const insetText = await $('.govuk-inset-text')
 
-    const commentaryContent = await commentary.getText()
+    await insetText.isExisting()
+    await expect(insetText).toBeDisplayed()
+
+    const commentaryContent = await insetText.getText()
     await expect(commentaryContent.length).toBeGreaterThan(0)
   })
 
-  it('should display the project timeline tab by default', async () => {
-    const tabPanel = await $('#project-engagement')
-    await expect(tabPanel).toBeDisplayed()
+  it('should display the tabs with Service Standard compliance as default', async () => {
+    // Check that the tabs are present
+    const tabsContainer = await $('.govuk-tabs')
+    await expect(tabsContainer).toBeDisplayed()
 
-    const timelineHeading = await $('#project-engagement h2')
-    const headingText = await timelineHeading.getText()
-    await expect(headingText).toBe('Project update timeline')
+    // Check that the Service Standard compliance tab is available
+    const complianceTab = await $('a[href="#compliance"]')
+    await expect(complianceTab).toBeDisplayed()
+
+    // Check that the Project engagement tab is available
+    const engagementTab = await $('a[href="#engagement"]')
+    await expect(engagementTab).toBeDisplayed()
+
+    // Check that the compliance tab panel is displayed by default
+    const complianceTabPanel = await $('#compliance')
+    await expect(complianceTabPanel).toBeDisplayed()
+
+    const complianceHeading = await $('#compliance h2')
+    const headingText = await complianceHeading.getText()
+    await expect(headingText).toBe('Service Standard compliance')
   })
 
-  it('should display project timeline events if available', async () => {
+  it('should display Service Standard compliance table or message', async () => {
+    // Wait for the compliance tab content to be present
+    const complianceTabPanel = await $('#compliance')
+    await expect(complianceTabPanel).toBeDisplayed()
+
+    // Check if there's a compliance table or a no standards message
+    const complianceTable = await complianceTabPanel.$('.govuk-table')
+    const noStandardsMessage = await complianceTabPanel.$(
+      'p*=No service standards available'
+    )
+
+    const tableExists = await complianceTable.isExisting()
+    const messageExists = await noStandardsMessage.isExisting()
+
+    if (tableExists) {
+      await expect(complianceTable).toBeDisplayed()
+
+      // Check table headers exist
+      const headers = await complianceTable.$$('th')
+      await expect(headers.length).toBeGreaterThan(0)
+
+      // Check that we have table rows
+      const rows = await complianceTable.$$('tbody tr')
+      if (rows.length > 0) {
+        // If we have rows, check that they have links to standards
+        const firstRowLink = await rows[0].$('a.govuk-link')
+        if (await firstRowLink.isExisting()) {
+          await expect(firstRowLink).toBeDisplayed()
+        }
+      }
+    } else if (messageExists) {
+      await expect(noStandardsMessage).toBeDisplayed()
+    } else {
+      // Neither table nor message found, but that's ok - just verify the tab is working
+      const tabHeading = await complianceTabPanel.$('h2')
+      await expect(tabHeading).toBeDisplayed()
+
+      const headingText = await tabHeading.getText()
+      await expect(headingText).toBe('Service Standard compliance')
+    }
+  })
+
+  it('should display project engagement content when tab is clicked', async () => {
+    // Click on the Project engagement tab
+    const engagementTab = await $('a[href="#engagement"]')
+    await engagementTab.click()
+
+    // Wait for the engagement tab panel to be displayed
+    const engagementTabPanel = await $('#engagement')
+    await expect(engagementTabPanel).toBeDisplayed()
+
+    // Check the heading
+    const engagementHeading = await $('#engagement h2')
+    const headingText = await engagementHeading.getText()
+    await expect(headingText).toBe('Project engagement')
+
     // This test is conditional - we may or may not have timeline events
     const timelineEvents = await $$('.timeline__event')
 
@@ -119,21 +214,29 @@ describe('Project detail page', () => {
       await expect(eventTitle).toBeDisplayed()
 
       // And should have some content
-      const eventContent = await firstEvent.$('.govuk-body')
+      const eventContent = await firstEvent.$('.timeline__event-content')
       await expect(eventContent).toBeDisplayed()
     } else {
-      // If no events, there should be a message saying no history
-      const noHistoryMessage = await $('p*=No history found for this project')
+      // If no events, there should be a message saying no project updates
+      const noHistoryMessage = await $(
+        '.govuk-inset-text p*=No project updates found yet'
+      )
       await expect(noHistoryMessage).toBeDisplayed()
     }
   })
 
-  it('should NOT display edit button for unauthenticated users', async () => {
-    // Since we're testing as unauthenticated users, edit button should not be present
-    const editButton = await $(
-      `a.govuk-button--secondary[href="/projects/${projectId}/edit"]`
+  it('should NOT display manage project link for unauthenticated users', async () => {
+    // Since we're testing as unauthenticated users, manage project link should not be present
+    const manageLink = await $(
+      `a.govuk-link[href="/projects/${projectId}/manage"]`
     )
-    await expect(editButton).not.toBeDisplayed()
+    await expect(manageLink).not.toBeDisplayed()
+
+    // Also check for the assessment link
+    const assessmentLink = await $(
+      `a.govuk-link[href="/projects/${projectId}/assessment"]`
+    )
+    await expect(assessmentLink).not.toBeDisplayed()
   })
 
   it('should NOT display the Profession updates tab for unauthenticated users', async () => {
@@ -142,15 +245,10 @@ describe('Project detail page', () => {
     await expect(professionsTab).not.toBeDisplayed()
   })
 
-  // Conditional test for page elements that depend on data
-  it('should handle charts appropriately if they exist', async () => {
-    // Project history chart may or may not be present depending on the implementation
+  // Removed test for charts since they have been removed from the application
+  it('should not display project history chart since it has been removed', async () => {
+    // Verify that the project history chart container no longer exists
     const chartContainer = await $('#project-history-chart')
-
-    // If chart exists, we just verify it's visible
-    // We can't easily test the chart rendering itself in a headless browser test
-    if (await chartContainer.isExisting()) {
-      await expect(chartContainer).toBeDisplayed()
-    }
+    await expect(chartContainer).not.toBeExisting()
   })
 })

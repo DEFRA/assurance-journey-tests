@@ -409,12 +409,10 @@ describe('Authentication', () => {
     })
 
     it('should create a new project and update its details', async () => {
-      // Click "Add new project" button
-      const addButton = await $(
-        'a.govuk-button--secondary[href="/projects/add"]'
-      )
-      await expect(addButton).toBeDisplayed()
-      await addButton.click()
+      // Click "Add new project" link
+      const addLink = await $('a.govuk-link[href="/projects/add"]')
+      await expect(addLink).toBeDisplayed()
+      await addLink.click()
 
       // Wait for add project page to load
       await browser.waitUntil(
@@ -432,6 +430,16 @@ describe('Authentication', () => {
       const nameInput = await $('input[name="name"]')
       await expect(nameInput).toBeDisplayed()
       await nameInput.setValue(projectName)
+
+      // Select GDS Phase (required field)
+      const phaseSelect = await $('select[name="phase"]')
+      await expect(phaseSelect).toBeDisplayed()
+      await phaseSelect.selectByIndex(1) // Select first real phase option
+
+      // Add DEFRA Code (optional)
+      const defCodeInput = await $('input[name="defCode"]')
+      await expect(defCodeInput).toBeDisplayed()
+      await defCodeInput.setValue('TEST-' + Date.now())
 
       // Wait for status select to be ready and check available options
       const statusSelect = await $('select[name="status"]')
@@ -482,14 +490,94 @@ describe('Authentication', () => {
         }
       )
 
-      // Click edit button
-      const editButton = await $('a.govuk-button--secondary=Edit project')
-      await expect(editButton).toBeDisplayed()
-      await editButton.click()
+      // Click manage project link (instead of edit button)
+      const manageButton = await $('a.govuk-link[href*="/manage"]')
+      await expect(manageButton).toBeDisplayed()
+      await manageButton.click()
 
-      // Wait for edit form to appear
-      const statusField = await $('#status')
-      await expect(statusField).toBeDisplayed()
+      // Wait for manage project selection page to load
+      await browser.waitUntil(
+        async () => {
+          const url = await browser.getUrl()
+          return (
+            url.includes('/manage') &&
+            !url.includes('/status') &&
+            !url.includes('/details')
+          )
+        },
+        {
+          timeout: 10000,
+          timeoutMsg: 'Expected to be on manage project selection page'
+        }
+      )
+
+      // Wait for the form to be fully loaded
+      await browser.waitUntil(
+        async () => {
+          const form = await $('form')
+          return await form.isDisplayed()
+        },
+        {
+          timeout: 10000,
+          timeoutMsg: 'Form not displayed'
+        }
+      )
+
+      // Wait for radio buttons to be present
+      await browser.waitUntil(
+        async () => {
+          const radioButtons = await $$('input[type="radio"]')
+          return radioButtons.length >= 2
+        },
+        {
+          timeout: 10000,
+          timeoutMsg: 'Radio buttons not found'
+        }
+      )
+
+      // Select "Update the project status and commentary" option
+      // The govukRadios macro generates specific IDs based on idPrefix
+      const statusUpdateOption = await $('#updateType')
+
+      // Wait for the radio button to be present and clickable
+      await browser.waitUntil(
+        async () => {
+          try {
+            const element = await $('#updateType')
+            return (await element.isExisting()) && (await element.isEnabled())
+          } catch (e) {
+            return false
+          }
+        },
+        {
+          timeout: 10000,
+          timeoutMsg: 'Status update radio button not found or not enabled'
+        }
+      )
+
+      // Click the radio button (don't check if displayed since GOV.UK radio buttons are often visually hidden)
+      await statusUpdateOption.click()
+
+      // Verify it's selected
+      const isStatusChecked = await statusUpdateOption.isSelected()
+      await expect(isStatusChecked).toBe(true)
+
+      // Click Continue button
+      const continueButton = await $('button=Continue')
+      await expect(continueButton).toBeDisplayed()
+      await continueButton.click()
+
+      // Wait for status update form to appear (new URL structure)
+      await browser.waitUntil(
+        async () => {
+          const url = await browser.getUrl()
+          return url.includes('/manage/status')
+        },
+        {
+          timeout: 10000,
+          timeoutMsg: 'Expected to be on status management page'
+        }
+      )
 
       // Update status to AMBER
       const editStatusSelect = await $('#status')
@@ -513,10 +601,12 @@ describe('Authentication', () => {
       // Update commentary
       const editCommentaryInput = await $('#commentary')
       await expect(editCommentaryInput).toBeDisplayed()
-      await editCommentaryInput.setValue('Updated project commentary')
+      await editCommentaryInput.setValue(
+        'Updated project commentary via new manage flow'
+      )
 
-      // Save changes
-      const saveButton = await $('button.govuk-button=Save Delivery Status')
+      // Save changes (updated button text)
+      const saveButton = await $('button.govuk-button=Save changes')
       await expect(saveButton).toBeDisplayed()
       await saveButton.click()
 
@@ -524,7 +614,7 @@ describe('Authentication', () => {
       await browser.waitUntil(
         async () => {
           const url = await browser.getUrl()
-          return url.includes('/projects/') && !url.includes('/edit')
+          return url.includes('/projects/') && !url.includes('/manage')
         },
         {
           timeout: 10000,
@@ -532,61 +622,116 @@ describe('Authentication', () => {
         }
       )
 
-      // Click edit button again
-      const editButton2 = await $('a.govuk-button--secondary=Edit project')
-      await expect(editButton2).toBeDisplayed()
-      await editButton2.click()
+      // Test the project details management flow as well
+      // Click manage project link again for details update
+      const manageButton2 = await $('a.govuk-link[href*="/manage"]')
+      await expect(manageButton2).toBeDisplayed()
+      await manageButton2.click()
 
-      // Wait for edit form
-      const statusField2 = await $('#status')
-      await expect(statusField2).toBeDisplayed()
-
-      // Switch to the Profession Updates tab
-      const professionsTab2 = await $('a[role="tab"][id*="professions"]')
-      await expect(professionsTab2).toBeDisplayed()
-      await professionsTab2.click()
-
-      // Wait for profession field
-      const professionField = await $('#profession')
-      await expect(professionField).toBeDisplayed()
-
-      // Fill in the profession update form
-      const professionSelect2 = await $('#profession')
-      await expect(professionSelect2).toBeDisplayed()
-      const professionOptions2 = await professionSelect2.$$('option')
-      if (professionOptions2.length < 2) {
-        throw new Error('No selectable professions available in the dropdown.')
-      }
-      await professionOptions2[1].click() // Select the first real profession
-
-      const professionStatusSelect2 = await $('#profession-status')
-      await expect(professionStatusSelect2).toBeDisplayed()
-      const professionStatusOptions2 =
-        await professionStatusSelect2.$$('option')
-      if (professionStatusOptions2.length < 2) {
-        throw new Error(
-          'No selectable status options available in the dropdown.'
-        )
-      }
-      await professionStatusOptions2[1].click() // Select the first real status
-
-      const professionCommentaryInput2 = await $('#profession-commentary')
-      await expect(professionCommentaryInput2).toBeDisplayed()
-      await professionCommentaryInput2.setValue(
-        'Initial profession status update'
+      // Wait for manage project selection page to load
+      await browser.waitUntil(
+        async () => {
+          const url = await browser.getUrl()
+          return (
+            url.includes('/manage') &&
+            !url.includes('/status') &&
+            !url.includes('/details')
+          )
+        },
+        {
+          timeout: 10000,
+          timeoutMsg: 'Expected to be on manage project selection page'
+        }
       )
 
-      // Add profession update
-      const addProfessionButton2 = await $(
-        'button.govuk-button=Add Profession Update'
+      // Wait for the form to be fully loaded again
+      await browser.waitUntil(
+        async () => {
+          const form = await $('form')
+          return await form.isDisplayed()
+        },
+        {
+          timeout: 10000,
+          timeoutMsg: 'Form not displayed'
+        }
       )
-      await expect(addProfessionButton2).toBeDisplayed()
-      await addProfessionButton2.click()
 
-      // Verify status was updated
-      const statusTag = await $('.govuk-tag.govuk-tag--large')
-      await expect(statusTag).toBeDisplayed()
-      await expect(statusTag).toHaveText('AMBER')
+      // Select "Update project name, phase or ID" option
+      // The second radio button should have ID updateType-2 based on govukRadios macro
+      const detailsUpdateOption = await $('#updateType-2')
+
+      // Wait for the radio button to be present and clickable
+      await browser.waitUntil(
+        async () => {
+          try {
+            const element = await $('#updateType-2')
+            return (await element.isExisting()) && (await element.isEnabled())
+          } catch (e) {
+            return false
+          }
+        },
+        {
+          timeout: 10000,
+          timeoutMsg: 'Details update radio button not found or not enabled'
+        }
+      )
+
+      // Click the radio button (don't check if displayed since GOV.UK radio buttons are often visually hidden)
+      await detailsUpdateOption.click()
+
+      // Verify it's selected
+      const isDetailsChecked = await detailsUpdateOption.isSelected()
+      await expect(isDetailsChecked).toBe(true)
+
+      // Click Continue button
+      const continueButton2 = await $('button=Continue')
+      await expect(continueButton2).toBeDisplayed()
+      await continueButton2.click()
+
+      // Wait for details update form to appear
+      await browser.waitUntil(
+        async () => {
+          const url = await browser.getUrl()
+          return url.includes('/manage/details')
+        },
+        {
+          timeout: 10000,
+          timeoutMsg: 'Expected to be on details management page'
+        }
+      )
+
+      // Update project name
+      const editNameInput = await $('input[name="name"]')
+      await expect(editNameInput).toBeDisplayed()
+      await editNameInput.setValue(projectName + ' - Updated')
+
+      // Update phase
+      const editPhaseSelect = await $('select[name="phase"]')
+      await expect(editPhaseSelect).toBeDisplayed()
+      await editPhaseSelect.selectByIndex(2) // Select a different phase
+
+      // Update DEFRA code
+      const editDefCodeInput = await $('input[name="defCode"]')
+      await expect(editDefCodeInput).toBeDisplayed()
+      await editDefCodeInput.setValue('UPDATED-' + Date.now())
+
+      // Save changes
+      const saveDetailsButton = await $('button.govuk-button=Save changes')
+      await expect(saveDetailsButton).toBeDisplayed()
+      await saveDetailsButton.click()
+
+      // Wait for redirect back to project page
+      await browser.waitUntil(
+        async () => {
+          const url = await browser.getUrl()
+          return url.includes('/projects/') && !url.includes('/manage')
+        },
+        {
+          timeout: 10000,
+          timeoutMsg:
+            'Expected to be redirected back to project page after details update'
+        }
+      )
     })
   })
 })

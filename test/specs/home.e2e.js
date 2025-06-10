@@ -27,12 +27,12 @@
 
 /**
  * Helper function to check if user is authenticated
- * This detects authentication by checking if the "Add new project" button exists
+ * This detects authentication by checking if the "Add new project" link exists
  * @returns {Promise<boolean>} true if user is authenticated, false otherwise
  */
 async function isUserAuthenticated() {
-  const addButton = await $('a.govuk-button--secondary[href="/projects/add"]')
-  return await addButton.isExisting()
+  const addLink = await $('a.govuk-link[href="/projects/add"]')
+  return await addLink.isExisting()
 }
 
 /**
@@ -239,9 +239,7 @@ describe('Home page', () => {
         const projectNameLink = await firstProjectRow.$(
           'td:first-child a.govuk-link'
         )
-        const ragStatusTag = await firstProjectRow.$(
-          'td:nth-child(2) strong.govuk-tag'
-        )
+        const ragStatusTag = await firstProjectRow.$('td:nth-child(2)')
 
         await expect(projectNameLink).toBeDisplayed()
 
@@ -250,8 +248,24 @@ describe('Home page', () => {
         await expect(href).toMatch(/\/projects\/\w+/)
 
         await expect(ragStatusTag).toBeDisplayed()
-        const ragStatus = await ragStatusTag.getText()
-        await expect(ragStatus).toMatch(/^(RED|AMBER|GREEN)$/)
+        const ragStatusText = await ragStatusTag.getText()
+        // Accept any of the 6 statuses, including dual-tag text for AMBER_RED and GREEN_AMBER
+        const validStatuses = [
+          'Red',
+          'Amber',
+          'Green',
+          'TBC',
+          'Red\nAmber', // AMBER_RED renders as two tags
+          'Amber\nGreen' // GREEN_AMBER renders as two tags
+        ]
+        const normalizedText = ragStatusText
+          .replace(/\s+/g, ' ')
+          .replace(/\n/g, ' ')
+          .trim()
+        const validNormalized = validStatuses.map((s) =>
+          s.replace(/\s+/g, ' ').replace(/\n/g, ' ').trim()
+        )
+        await expect(validNormalized).toContain(normalizedText)
       }
     })
 
@@ -292,18 +306,16 @@ describe('Home page', () => {
   describe('"Add new project" button', () => {
     // These tests are written to work for both authenticated and unauthenticated users
 
-    it('should display "Add new project" button only if user is authenticated', async () => {
+    it('should display "Add new project" link only if user is authenticated', async () => {
       const authenticated = await isUserAuthenticated()
-      const addButton = await $(
-        'a.govuk-button--secondary[href="/projects/add"]'
-      )
+      const addLink = await $('a.govuk-link[href="/projects/add"]')
 
       if (authenticated) {
-        await expect(addButton).toBeDisplayed()
-        await expect(addButton).toHaveText('Add new project')
+        await expect(addLink).toBeDisplayed()
+        await expect(addLink).toHaveText('Add new project')
       } else {
-        // Test passes if we're testing an unauthenticated user (button shouldn't exist)
-        await expect(addButton).not.toBeExisting()
+        // Test passes if we're testing an unauthenticated user (link shouldn't exist)
+        await expect(addLink).not.toBeExisting()
       }
     })
 
@@ -311,10 +323,8 @@ describe('Home page', () => {
       const authenticated = await isUserAuthenticated()
 
       if (authenticated) {
-        const addButton = await $(
-          'a.govuk-button--secondary[href="/projects/add"]'
-        )
-        await addButton.click()
+        const addLink = await $('a.govuk-link[href="/projects/add"]')
+        await addLink.click()
 
         // Fix: Use proper URL assertion
         const currentUrl = await browser.getUrl()
@@ -324,17 +334,15 @@ describe('Home page', () => {
 
     it('should handle authentication state correctly for "Add new project" functionality', async () => {
       const authenticated = await isUserAuthenticated()
-      const addButton = await $(
-        'a.govuk-button--secondary[href="/projects/add"]'
-      )
+      const addLink = await $('a.govuk-link[href="/projects/add"]')
 
       if (authenticated) {
-        // If authenticated, button should be functional
-        await expect(addButton).toBeDisplayed()
-        await expect(addButton).toBeClickable()
+        // If authenticated, link should be functional
+        await expect(addLink).toBeDisplayed()
+        await expect(addLink).toBeClickable()
       } else {
-        // If not authenticated, button should not exist
-        await expect(addButton).not.toBeExisting()
+        // If not authenticated, link should not exist
+        await expect(addLink).not.toBeExisting()
       }
     })
   })
