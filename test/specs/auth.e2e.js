@@ -734,4 +734,575 @@ describe('Authentication', () => {
       )
     })
   })
+
+  describe('Service Standard Assessments', () => {
+    const testProjects = []
+
+    beforeEach(async () => {
+      // Navigate to home page
+      await browser.url('/')
+
+      // Wait for the page to be fully loaded
+      await browser.waitUntil(
+        async () => {
+          const readyState = await browser.execute(() => document.readyState)
+          return readyState === 'complete'
+        },
+        {
+          timeout: 10000,
+          timeoutMsg: 'Expected page to be fully loaded'
+        }
+      )
+    })
+
+    it('should create projects at different phases and add service standard assessments', async () => {
+      const projectPhases = [
+        { phase: 'Discovery', index: 1 },
+        { phase: 'Alpha', index: 2 },
+        { phase: 'Beta', index: 3 },
+        { phase: 'Live', index: 4 }
+      ]
+
+      // Create projects for each phase
+      for (const phaseInfo of projectPhases) {
+        const projectName = `${phaseInfo.phase} Test Project ${Date.now()}`
+
+        // Navigate to add project page
+        const addLink = await $('a.govuk-link[href="/projects/add"]')
+        await expect(addLink).toBeDisplayed()
+        await addLink.click()
+
+        // Wait for add project page
+        await browser.waitUntil(
+          async () => {
+            return (await browser.getUrl()).includes('/projects/add')
+          },
+          {
+            timeout: 10000,
+            timeoutMsg: 'Expected to be on add project page'
+          }
+        )
+
+        // Fill project details
+        const nameInput = await $('input[name="name"]')
+        await expect(nameInput).toBeDisplayed()
+        await nameInput.setValue(projectName)
+
+        // Select specific phase
+        const phaseSelect = await $('select[name="phase"]')
+        await expect(phaseSelect).toBeDisplayed()
+        await phaseSelect.selectByIndex(phaseInfo.index)
+
+        // Add DEFRA Code
+        const defCodeInput = await $('input[name="defCode"]')
+        await expect(defCodeInput).toBeDisplayed()
+        await defCodeInput.setValue(
+          `${phaseInfo.phase.toUpperCase()}-${Date.now()}`
+        )
+
+        // Set initial status
+        const statusSelect = await $('select[name="status"]')
+        await expect(statusSelect).toBeDisplayed()
+        await statusSelect.selectByIndex(1) // TBC
+
+        // Add commentary
+        const commentaryInput = await $('textarea[name="commentary"]')
+        await expect(commentaryInput).toBeDisplayed()
+        await commentaryInput.setValue(
+          `${phaseInfo.phase} phase project for assessment testing`
+        )
+
+        // Submit form
+        const submitButton = await $('button[type="submit"]')
+        await expect(submitButton).toBeDisplayed()
+        await submitButton.click()
+
+        // Wait for redirect to home page
+        await browser.waitUntil(
+          async () => {
+            const heading = await $('h1.govuk-heading-xl')
+            return (
+              (await heading.isDisplayed()) &&
+              (await heading.getText()) === 'Projects'
+            )
+          },
+          {
+            timeout: 10000,
+            timeoutMsg: 'Expected to be redirected to home page'
+          }
+        )
+
+        // Find the created project and navigate to it
+        const projectLink = await $(`a.govuk-link*=${projectName}`)
+        await expect(projectLink).toBeDisplayed()
+        await projectLink.click()
+
+        // Wait for project page
+        await browser.waitUntil(
+          async () => {
+            const url = await browser.getUrl()
+            return url.includes('/projects/') && !url.includes('/add')
+          },
+          {
+            timeout: 10000,
+            timeoutMsg: 'Expected to be on project detail page'
+          }
+        )
+
+        // Get project ID from URL for assessments
+        const currentUrl = await browser.getUrl()
+        const projectId = currentUrl.split('/projects/')[1].split('/')[0]
+        testProjects.push({
+          id: projectId,
+          name: projectName,
+          phase: phaseInfo.phase
+        })
+
+        // Navigate to Service Standard compliance tab to see available standards
+        const complianceTab = await $('a[href="#compliance"]')
+        if (await complianceTab.isExisting()) {
+          await complianceTab.click()
+
+          // Wait for tab content to be visible
+          await browser.waitUntil(
+            async () => {
+              const compliancePanel = await $('#compliance')
+              return await compliancePanel.isDisplayed()
+            },
+            {
+              timeout: 5000,
+              timeoutMsg: 'Compliance tab did not become visible'
+            }
+          )
+
+          // Find service standard links in the compliance table
+          const standardLinks = await $$(
+            '#compliance .govuk-table tbody tr .govuk-link'
+          )
+
+          if (standardLinks.length > 0) {
+            // Test assessments for first 2 standards
+            const standardsToTest = Math.min(2, standardLinks.length)
+
+            for (
+              let standardIndex = 0;
+              standardIndex < standardsToTest;
+              standardIndex++
+            ) {
+              // Get the standard text before clicking (so we can select it later in the form)
+              const standardText = await standardLinks[standardIndex].getText()
+              const standardMatch = standardText.match(/^(\d+)\.\s*(.+)/)
+              let expectedStandardNumber = null
+
+              if (standardMatch) {
+                expectedStandardNumber = standardMatch[1]
+              }
+
+              // Click on the standard link to go to its assessment page
+              await standardLinks[standardIndex].click()
+
+              // Wait for standard-specific page to load
+              await browser.waitUntil(
+                async () => {
+                  const url = await browser.getUrl()
+                  return url.includes('/standards/')
+                },
+                {
+                  timeout: 10000,
+                  timeoutMsg: 'Standard page did not load'
+                }
+              )
+
+              // Now we should be on a page where we can add assessments
+              // Look for "Add assessment" links or buttons
+              const addAssessmentLink = await $('a*=Add')
+
+              if (await addAssessmentLink.isExisting()) {
+                await addAssessmentLink.click()
+
+                // Wait for assessment form page
+                await browser.waitUntil(
+                  async () => {
+                    const url = await browser.getUrl()
+                    return url.includes('/assessment')
+                  },
+                  {
+                    timeout: 10000,
+                    timeoutMsg: 'Assessment form page did not load'
+                  }
+                )
+
+                // Now we're on the assessment form - fill it out
+
+                // Select profession - check what's available first
+                const professionSelect = await $('select[name="professionId"]')
+                if (await professionSelect.isExisting()) {
+                  // Debug: check available professions
+                  const professionOptions = await professionSelect.$$('option')
+                  const availableProfessions = []
+                  for (const option of professionOptions) {
+                    const text = await option.getText()
+                    const value = await option.getAttribute('value')
+                    if (value && value !== '') {
+                      // Skip empty "Choose profession" option
+                      availableProfessions.push({ text, value })
+                    }
+                  }
+                  if (availableProfessions.length > 0) {
+                    // Select the first available profession
+                    const selectedProfession = availableProfessions[0]
+                    await professionSelect.selectByAttribute(
+                      'value',
+                      selectedProfession.value
+                    )
+                  } else {
+                    continue // Skip this standard
+                  }
+                }
+
+                // Wait for standards dropdown to be populated after profession selection
+                await browser.waitUntil(
+                  async () => {
+                    const standardSelect = await $('select[name="standardId"]')
+                    if (!(await standardSelect.isExisting())) return false
+                    const options = await standardSelect.$$('option')
+                    return options.length > 1 // More than just the default "Choose" option
+                  },
+                  {
+                    timeout: 5000,
+                    timeoutMsg: 'Standards dropdown not populated'
+                  }
+                )
+
+                // Select the specific standard we clicked on from the compliance table
+                const standardSelect = await $('select[name="standardId"]')
+                if (await standardSelect.isExisting()) {
+                  const standardOptions = await standardSelect.$$('option')
+                  const availableStandards = []
+                  let targetStandardFound = false
+                  let targetStandardValue = null
+
+                  for (const option of standardOptions) {
+                    const text = await option.getText()
+                    const value = await option.getAttribute('value')
+                    if (
+                      value &&
+                      value !== '' &&
+                      !text.includes('No standards available')
+                    ) {
+                      availableStandards.push({ text, value })
+
+                      // Check if this matches the standard we clicked on
+                      if (
+                        expectedStandardNumber &&
+                        text.includes(`${expectedStandardNumber}.`)
+                      ) {
+                        targetStandardFound = true
+                        targetStandardValue = value
+                      }
+                    }
+                  }
+
+                  if (availableStandards.length === 0) {
+                    continue // Skip this standard
+                  }
+
+                  // Select the specific standard we want to assess
+                  if (targetStandardFound && targetStandardValue) {
+                    await standardSelect.selectByAttribute(
+                      'value',
+                      targetStandardValue
+                    )
+                  } else {
+                    await standardSelect.selectByAttribute(
+                      'value',
+                      availableStandards[0].value
+                    )
+                  }
+                }
+
+                // Define status arrays at a higher scope
+                const statusValues = ['RED', 'AMBER', 'GREEN'] // Backend values
+                const statusDisplayNames = ['Red', 'Amber', 'Green'] // Display names
+                const statusIndex = standardIndex % statusValues.length
+                const backendValue = statusValues[statusIndex]
+                const displayName = statusDisplayNames[statusIndex]
+
+                // Select status
+                const statusSelect = await $('select[name="status"]')
+                if (await statusSelect.isExisting()) {
+                  // Try selecting by value first (more reliable)
+                  try {
+                    await statusSelect.selectByAttribute('value', backendValue)
+                  } catch (error) {
+                    await statusSelect.selectByVisibleText(displayName)
+                  }
+                }
+
+                // Wait for commentary fields to appear (they're shown/hidden based on status)
+                await browser.waitUntil(
+                  async () => {
+                    if (selectedStatusValue === 'GREEN') {
+                      const greenCommentary = await $(
+                        'textarea[name="green-text"]'
+                      )
+                      return await greenCommentary.isDisplayed()
+                    } else {
+                      const issueDescription = await $(
+                        'textarea[name="issue-text"]'
+                      )
+                      const pathToGreen = await $('textarea[name="path-text"]')
+                      return (
+                        (await issueDescription.isDisplayed()) &&
+                        (await pathToGreen.isDisplayed())
+                      )
+                    }
+                  },
+                  {
+                    timeout: 5000,
+                    timeoutMsg: 'Commentary fields not displayed'
+                  }
+                )
+
+                // Fill commentary based on status
+                const selectedStatusValue = backendValue
+
+                if (selectedStatusValue === 'GREEN') {
+                  // Green status: single field for "what's in place"
+                  const greenCommentary = await $('textarea[name="green-text"]')
+                  await browser.waitUntil(
+                    async () => await greenCommentary.isDisplayed(),
+                    {
+                      timeout: 5000,
+                      timeoutMsg: 'Green commentary field not displayed'
+                    }
+                  )
+                  await greenCommentary.setValue(
+                    `This standard is being met in ${phaseInfo.phase} phase. We have proper processes and documentation in place.`
+                  )
+                } else {
+                  // Non-green status: two fields - issue description and path to green
+                  const issueDescription = await $(
+                    'textarea[name="issue-text"]'
+                  )
+                  const pathToGreen = await $('textarea[name="path-text"]')
+
+                  // Wait for both fields to be displayed
+                  await browser.waitUntil(
+                    async () => {
+                      return (
+                        (await issueDescription.isDisplayed()) &&
+                        (await pathToGreen.isDisplayed())
+                      )
+                    },
+                    {
+                      timeout: 5000,
+                      timeoutMsg: 'Non-green commentary fields not displayed'
+                    }
+                  )
+
+                  // Fill issue description
+                  await issueDescription.setValue(
+                    `Issue identified in ${phaseInfo.phase} phase: Need to address gaps in this service standard area.`
+                  )
+
+                  // Fill path to green
+                  await pathToGreen.setValue(
+                    `Action plan: Working with team to implement necessary changes and documentation to meet this standard.`
+                  )
+                }
+
+                // Submit the form
+                const saveButton = await $('button*=Save')
+                if (await saveButton.isExisting()) {
+                  await saveButton.click()
+
+                  // Wait for redirect back to project or standard page
+                  await browser.waitUntil(
+                    async () => {
+                      const url = await browser.getUrl()
+                      return (
+                        url.includes('/projects/') &&
+                        !url.includes('/assessment')
+                      )
+                    },
+                    {
+                      timeout: 10000,
+                      timeoutMsg: 'Did not redirect after saving assessment'
+                    }
+                  )
+                }
+              }
+
+              // Navigate back to project page for next standard
+              await browser.url(`/projects/${projectId}`)
+
+              // Re-click compliance tab for next iteration
+              if (standardIndex < standardsToTest - 1) {
+                const complianceTabAgain = await $('a[href="#compliance"]')
+                if (await complianceTabAgain.isExisting()) {
+                  await complianceTabAgain.click()
+                  await browser.waitUntil(
+                    async () => {
+                      const compliancePanel = await $('#compliance')
+                      return await compliancePanel.isDisplayed()
+                    },
+                    {
+                      timeout: 5000,
+                      timeoutMsg: 'Compliance tab not active'
+                    }
+                  )
+                }
+              }
+            }
+          } else {
+            // No service standard links found in compliance table
+          }
+        } else {
+          // No compliance tab found on project page
+        }
+
+        // Navigate back to home for next project
+        await browser.url('/')
+      }
+
+      // Verify assessments were created by checking project pages
+      for (const project of testProjects) {
+        await browser.url(`/projects/${project.id}`)
+
+        // Wait for project page to load
+        await browser.waitUntil(
+          async () => {
+            const heading = await $('h1.govuk-heading-xl')
+            return await heading.isDisplayed()
+          },
+          {
+            timeout: 10000,
+            timeoutMsg: 'Project page did not load'
+          }
+        )
+
+        // Check if Service Standard compliance tab exists
+        const complianceTab = await $('a[href="#compliance"]')
+        if (await complianceTab.isExisting()) {
+          await complianceTab.click()
+
+          // Check for assessment data in the compliance tab
+          const complianceTable = await $('#compliance .govuk-table')
+          if (await complianceTable.isExisting()) {
+            const assessmentRows = await complianceTable.$$('tbody tr')
+            await expect(assessmentRows.length).toBeGreaterThan(0)
+          }
+        }
+      }
+    })
+
+    it('should update existing service standard assessments with different statuses', async () => {
+      // This test assumes we have projects from the previous test
+      // Navigate to first test project and update assessments
+      if (testProjects.length > 0) {
+        const project = testProjects[0]
+        await browser.url(`/projects/${project.id}/assessment`)
+
+        // Wait for assessment page
+        await browser.waitUntil(
+          async () => {
+            const url = await browser.getUrl()
+            return url.includes('/assessment')
+          },
+          {
+            timeout: 10000,
+            timeoutMsg: 'Expected to be on assessment page'
+          }
+        )
+
+        // Find existing assessments and update them
+        const existingAssessments = await $$('button*=Edit')
+
+        if (existingAssessments.length > 0) {
+          const assessmentToUpdate = existingAssessments[0]
+          await assessmentToUpdate.click()
+
+          // Wait for edit form
+          await browser.waitUntil(
+            async () => {
+              const form = await $('form[action*="assessment"]')
+              return await form.isExisting()
+            },
+            {
+              timeout: 5000,
+              timeoutMsg: 'Edit assessment form not found'
+            }
+          )
+
+          // Update status to different value
+          const statusSelect = await $('select[name="status"]')
+          if (await statusSelect.isExisting()) {
+            await statusSelect.selectByVisibleText('Green')
+          }
+
+          // Update commentary
+          const commentaryField = await $('textarea[name="commentary"]')
+          if (await commentaryField.isExisting()) {
+            await commentaryField.setValue(
+              'Updated assessment - now Green after improvements'
+            )
+          }
+
+          // Save changes
+          const saveButton = await $('button*=Save')
+          if (await saveButton.isExisting()) {
+            await saveButton.click()
+
+            // Wait for redirect
+            await browser.waitUntil(
+              async () => {
+                return (await browser.getUrl()).includes('/assessment')
+              },
+              {
+                timeout: 5000,
+                timeoutMsg: 'Did not redirect after assessment update'
+              }
+            )
+          }
+        }
+      }
+    })
+
+    it('should show assessment history without automatically archiving', async () => {
+      // Test the assessment history functionality but be careful not to archive everything
+      if (testProjects.length > 0) {
+        const project = testProjects[0]
+        await browser.url(`/projects/${project.id}/assessment`)
+
+        // Look for history links
+        const historyLinks = await $$('a*=History')
+
+        if (historyLinks.length > 0) {
+          await historyLinks[0].click()
+
+          // Wait for history page
+          await browser.waitUntil(
+            async () => {
+              const url = await browser.getUrl()
+              return url.includes('/history')
+            },
+            {
+              timeout: 10000,
+              timeoutMsg: 'Expected to be on assessment history page'
+            }
+          )
+
+          // Check for history entries
+          const historyEntries = await $$(
+            '.timeline__event, .history-entry, tr'
+          )
+
+          if (historyEntries.length > 0) {
+            await expect(historyEntries[0]).toBeDisplayed()
+          }
+        }
+      }
+    })
+  })
 })

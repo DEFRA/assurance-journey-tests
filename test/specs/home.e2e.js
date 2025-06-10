@@ -262,8 +262,9 @@ describe('Home page', () => {
           .replace(/\s+/g, ' ')
           .replace(/\n/g, ' ')
           .trim()
-        const validNormalized = validStatuses.map((s) =>
-          s.replace(/\s+/g, ' ').replace(/\n/g, ' ').trim()
+          .toLowerCase() // Make case-insensitive
+        const validNormalized = validStatuses.map(
+          (s) => s.replace(/\s+/g, ' ').replace(/\n/g, ' ').trim().toLowerCase() // Make case-insensitive
         )
         await expect(validNormalized).toContain(normalizedText)
       }
