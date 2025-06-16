@@ -317,11 +317,11 @@ async function handleStaySignedInScreen() {
 describe('Authentication', () => {
   describe('Login Flow', () => {
     beforeEach(async () => {
+      // Clear cookies before navigating to ensure a clean state
+      await browser.deleteAllCookies()
+
       // Start each test at the login page
       await browser.url('/auth/login')
-
-      // Clear cookies before each test to ensure a clean state
-      await browser.deleteAllCookies()
     })
 
     it('should complete the Azure AD login flow and verify authentication', async () => {
