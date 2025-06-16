@@ -28,13 +28,11 @@ export const config = {
 
   capabilities: [
     {
-      ...(process.env.HTTP_PROXY && {
-        proxy: {
-          proxyType: 'manual',
-          httpProxy: new URL(process.env.HTTP_PROXY).host,
-          sslProxy: new URL(process.env.HTTP_PROXY).host
-        }
-      }),
+      proxy: {
+        proxyType: 'manual',
+        httpProxy: 'localhost:3128',
+        sslProxy: 'localhost:3128'
+      },
       browserName: 'chrome',
       'goog:chromeOptions': {
         args: [
