@@ -1,11 +1,11 @@
-name: Run Journey Tests on GitHub
+name: Run Assurance Journey Tests on GitHub
 
 runs:
   using: 'composite'
   steps:
     - uses: actions/checkout@v4
       with:
-        repository: DEFRA/assurance-journey-tests
+        repository: DEFRA/assurance-journey-tests 
     - uses: actions/setup-node@v4
       with:
         node-version: 20

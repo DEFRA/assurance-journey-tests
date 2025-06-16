@@ -12,4 +12,4 @@ jobs:
     name: Run Journey Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: DEFRA/assurance-journey-tests/assurance-journey-tests@main
+      - uses: DEFRA/assurance-journey-tests/run-journey-tests@main
