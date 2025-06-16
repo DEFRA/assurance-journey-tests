@@ -1,22 +1,4 @@
-################################################################################
-# Docker Compose file for starting up the service for testing in GitHub workflow
-# This template provides comparable infrastructure to the real environment.
-#   - mongodb
-#   - redis
-#   - localstack (s3, sqs, sns)
-#
-# Both mongo and localstack have init scripts included for setting up resources
-# on startup. These scripts are in docker/scripts.
-#
-# It also includes a selenium-chrome container for running the browser headless.
-#
-# The services being tested can either be started up here using the latest
-# builds from dockerhub.
-# In the example each service has a .env config file in docker/config/
-# Services can reference each other by their container names.
-# e.g. http://cdp-example-node-backend:3001/
-#
-################################################################################
+version: '3.4'
 services:
   ################################################################################
   # Headless browser, used by the test suite to actually run the tests against the
@@ -62,44 +44,72 @@ services:
       interval: 5s
       start_period: 2s
       retries: 5
-################################################################################
-#
-# Add the services you want to test below.
-#
-################################################################################
-#  cdp-example-node-frontend:
-#    image: defradigital/cdp-example-node-frontend:${CDP_EXAMPLE_NODE_FRONTEND:-latest}
-#    env_file:
-#      - ./docker/config/defaults.env
-#      - ./docker/config/example-frontend.env
-#    environment:
-#      - PORT=3000
-#    depends_on:
-#      cdp-example-node-backend:
-#        condition: service_started
-#      redis:
-#        condition: service_healthy
-#    ports:
-#      - 3000:3000
-#    healthcheck:
-#      test: ["CMD", "curl", "http://localhost:3000/health"]
-#      interval: 3s
-#      start_period: 2s
-#      retries: 3
+  ################################################################################
+  #
+  # Add the services you want to test below.
+  #
+  ################################################################################
+  your-frontend:
+    image: defradigital/assurance-frontend:latest
+    ports:
+      - '3000:3000'
+    depends_on:
+      localstack:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      your-backend:
+        condition: service_started
+    env_file:
+      - 'compose/aws.env'
+    environment:
+      API_BASE_URL: http://your-backend:8080
+      AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET}
+      AZURE_CLIENT_ID: 'a741690c-cc36-410d-a83a-b64a1bbc635a'
+      AZURE_TENANT_ID: '6f504113-6b64-43f2-ade9-242e05780007'
+      PORT: 3000
+      NODE_ENV: development
+      REDIS_HOST: redis
+      LOCALSTACK_ENDPOINT: http://localstack:4566
+      USE_SINGLE_INSTANCE_CACHE: true
+    networks:
+      - default
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  ################################################################################
+  your-backend:
+    image: defradigital/assurance-api:latest
+    ports:
+      - '8080:8080'
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    environment:
+      PORT: 8080
+      NODE_ENV: development
+      AZURE__TENANTID: '6f504113-6b64-43f2-ade9-242e05780007'
+      AZURE__CLIENTID: 'a741690c-cc36-410d-a83a-b64a1bbc635a'
+      AUTO_GENERATE_HISTORY: true
+      LOCALSTACK_ENDPOINT: http://localstack:4566
+      Mongo__DatabaseUri: mongodb://mongodb:27017
+    networks:
+      - default
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 ################################################################################
-# cdp-example-node-backend:
-#   image: defradigital/cdp-example-node-backend:${CDP_EXAMPLE_NODE_BACKEND:-latest}
-#   env_file:
-#     - ./docker/config/defaults.env
-#     - ./docker/config/example-backend.env
-#   environment:
-#     - PORT=3001
-#   depends_on:
-#     mongodb:
-#       condition: service_healthy
-#   healthcheck:
-#     test: ["CMD", "curl", "http://localhost:3001/health"]
-#     interval: 3s
-#     start_period: 2s
-#     retries: 3
+# Networks
+networks:
+  default:
+    driver: bridge

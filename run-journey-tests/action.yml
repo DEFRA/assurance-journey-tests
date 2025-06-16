@@ -27,9 +27,11 @@ runs:
       shell: bash
     - name: Start docker compose
       shell: bash
+      env:
+        CDP_EXAMPLE_NODE_FRONTEND: ${{inputs.example-node-frontend}}
+        CDP_EXAMPLE_NODE_BACKEND: ${{inputs.example-node-backend}}
+        AZURE_CLIENT_SECRET: ${{secrets.AZURE_CLIENT_SECRET}}
       run: |
-        CDP_EXAMPLE_NODE_FRONTEND=${{inputs.example-node-frontend}} \
-        CDP_EXAMPLE_NODE_BACKEND=${{inputs.example-node-backend}} \
         docker compose up --wait-timeout 300 -d --quiet-pull
     - name: Run the tests
       shell: bash
