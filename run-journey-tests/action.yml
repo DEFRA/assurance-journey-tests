@@ -1,19 +1,11 @@
 name: Run Journey Tests on GitHub
 
-inputs:
-  example-node-backend:
-    required: false
-    type: string
-  example-node-frontend:
-    required: false
-    type: string
-
 runs:
   using: 'composite'
   steps:
     - uses: actions/checkout@v4
       with:
-        repository: DEFRA/cdp-node-journey-test-suite-template
+        repository: DEFRA/assurance-journey-tests
 
     - name: Docker Login
       uses: DEFRA/cdp-build-action/docker-login@main
@@ -28,8 +20,6 @@ runs:
     - name: Start docker compose
       shell: bash
       env:
-        CDP_EXAMPLE_NODE_FRONTEND: ${{inputs.example-node-frontend}}
-        CDP_EXAMPLE_NODE_BACKEND: ${{inputs.example-node-backend}}
         AZURE_CLIENT_SECRET: ${{secrets.AZURE_CLIENT_SECRET}}
       run: |
         docker compose up --wait-timeout 300 -d --quiet-pull
