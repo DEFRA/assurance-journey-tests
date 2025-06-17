@@ -1,4 +1,22 @@
 import fs from 'node:fs'
+import { bootstrap } from 'global-agent'
+import { ProxyAgent, setGlobalDispatcher } from 'undici'
+
+// Setup global proxy using global-agent and undici
+if (process.env.HTTP_PROXY || process.env.HTTPS_PROXY) {
+  try {
+    // Bootstrap global-agent for HTTP/HTTPS requests
+    bootstrap()
+    // Setup undici proxy for fetch requests
+    const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY
+    if (proxyUrl) {
+      const proxyAgent = new ProxyAgent(proxyUrl)
+      setGlobalDispatcher(proxyAgent)
+    }
+  } catch (error) {
+    // Continue execution - proxy setup failure shouldn't block tests
+  }
+}
 
 const oneMinute = 60 * 1000
 
@@ -28,19 +46,12 @@ export const config = {
 
   capabilities: [
     {
-      ...(process.env.HTTP_PROXY && {
-        proxy: {
-          proxyType: 'manual',
-          httpProxy: new URL(process.env.HTTP_PROXY).host,
-          sslProxy: new URL(process.env.HTTP_PROXY).host
-        }
-      }),
       browserName: 'chrome',
       'goog:chromeOptions': {
         args: [
+          '--headless', // Use headless mode
           '--no-sandbox',
           '--disable-infobars',
-          '--headless',
           '--disable-gpu',
           '--window-size=1920,1080',
           '--enable-features=NetworkService,NetworkServiceInProcess',
