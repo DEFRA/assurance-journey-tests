@@ -1,22 +1,4 @@
 import fs from 'node:fs'
-import { bootstrap } from 'global-agent'
-import { ProxyAgent, setGlobalDispatcher } from 'undici'
-
-// Setup global proxy using global-agent and undici
-if (process.env.HTTP_PROXY || process.env.HTTPS_PROXY) {
-  try {
-    // Bootstrap global-agent for HTTP/HTTPS requests
-    bootstrap()
-    // Setup undici proxy for fetch requests
-    const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY
-    if (proxyUrl) {
-      const proxyAgent = new ProxyAgent(proxyUrl)
-      setGlobalDispatcher(proxyAgent)
-    }
-  } catch (error) {
-    // Continue execution - proxy setup failure shouldn't block tests
-  }
-}
 
 const oneMinute = 60 * 1000
 
@@ -46,6 +28,17 @@ export const config = {
 
   capabilities: [
     {
+      // Use CDP proxies directly instead of localhost proxy
+      ...(process.env.CDP_HTTP_PROXY && {
+        proxy: {
+          proxyType: 'manual',
+          httpProxy: new URL(process.env.CDP_HTTP_PROXY).host,
+          sslProxy: new URL(
+            process.env.CDP_HTTPS_PROXY || process.env.CDP_HTTP_PROXY
+          ).host,
+          noProxy: 'localhost,127.0.0.1'
+        }
+      }),
       browserName: 'chrome',
       'goog:chromeOptions': {
         args: [
