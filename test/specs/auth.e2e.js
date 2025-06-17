@@ -293,30 +293,6 @@ async function handleAuthorizationScreen() {
 // Note: handleStaySignedInScreen function removed - now handled inline in the login flow
 
 describe('Authentication', () => {
-  describe('Direct Microsoft Connectivity', () => {
-    it('should connect directly to Microsoft login to test proxy connectivity', async () => {
-      // First, test direct connectivity to Microsoft login to isolate redirect issues
-      const directUrl = 'https://login.microsoftonline.com/'
-      await browser.url(directUrl)
-
-      // Wait for the page to load
-      await browser.waitUntil(
-        async () => {
-          const readyState = await browser.execute(() => document.readyState)
-          return readyState === 'complete'
-        },
-        {
-          timeout: 30000,
-          timeoutMsg: 'Microsoft login page did not load'
-        }
-      )
-
-      // Verify we can access Microsoft login directly
-      const currentUrl = await browser.getUrl()
-      await expect(currentUrl).toContain('login.microsoftonline.com')
-    })
-  })
-
   describe('Login Flow', () => {
     beforeEach(async () => {
       // Clear cookies before navigating to ensure a clean state

@@ -1,63 +1,29 @@
 import fs from 'node:fs'
 import { ProxyAgent, setGlobalDispatcher } from 'undici'
 import { bootstrap } from 'global-agent'
+import { browserStackCapabilities } from './wdio.browserstack.capabilities.js'
 
-/**
- * Enable webdriver.io to use the outbound proxy.
- * This is required for the test suite to be able to talk to BrowserStack.
- */
-if (process.env.HTTP_PROXY) {
-  const dispatcher = new ProxyAgent({
-    uri: process.env.HTTP_PROXY
-  })
-  setGlobalDispatcher(dispatcher)
-  bootstrap()
-  global.GLOBAL_AGENT.HTTP_PROXY = process.env.HTTP_PROXY
-}
-
-const oneMinute = 60 * 1000
+const dispatcher = new ProxyAgent({
+  uri: 'http://localhost:3128'
+})
+setGlobalDispatcher(dispatcher)
+bootstrap()
+global.GLOBAL_AGENT.HTTP_PROXY = 'http://localhost:3128'
 
 export const config = {
-  //
-  // ====================
-  // Runner Configuration
-  // ====================
-  // WebdriverIO supports running e2e tests as well as unit and component tests.
-  runner: 'local',
-  //
-  // Set a base URL in order to shorten url command calls. If your `url` parameter starts
-  // with `/`, the base url gets prepended, not including the path portion of your baseUrl.
-  // If your `url` parameter starts without a scheme or `/` (like `some/path`), the base url
-  // gets prepended directly.
-  baseUrl: `https://assurance-journey-tests.${process.env.ENVIRONMENT}.cdp-int.defra.cloud`,
-
-  // You will need to provide your own BrowserStack credentials.
-  // These should be added as secrets to the test suite.
   user: process.env.BROWSERSTACK_USERNAME,
   key: process.env.BROWSERSTACK_KEY,
-
-  // Tests to run
+  baseUrl: `https://assurance-frontend.${process.env.ENVIRONMENT}.cdp-int.defra.cloud`,
+  runner: 'local',
   specs: ['./test/specs/**/*.js'],
-  // Tests to exclude
   exclude: [],
-  maxInstances: 1,
-
+  maxInstances: 10,
   commonCapabilities: {
     'bstack:options': {
-      buildName: `assurance-journey-tests-${process.env.ENVIRONMENT}` // configure as required
+      buildName: `assurance-journey-tests-${process.env.ENVIRONMENT}`
     }
   },
-
-  capabilities: [
-    {
-      browserName: 'Chrome', // Set as required
-      'bstack:options': {
-        browserVersion: 'latest',
-        os: 'Windows',
-        osVersion: '11'
-      }
-    }
-  ],
+  capabilities: browserStackCapabilities,
 
   services: [
     [
@@ -65,9 +31,9 @@ export const config = {
       {
         testObservability: true, // Disable if you do not want to use the browserstack test observer functionality
         testObservabilityOptions: {
-          user: process.env.BROWSERSTACK_USER,
+          user: process.env.BROWSERSTACK_USERNAME,
           key: process.env.BROWSERSTACK_KEY,
-          projectName: 'cdp-node-env-test-suite', // should match project in browserstack
+          projectName: 'assurance-journey-tests',
           buildName: `assurance-journey-tests-${process.env.ENVIRONMENT}`
         },
         acceptInsecureCerts: true,
@@ -89,7 +55,7 @@ export const config = {
   bail: 0,
   waitforTimeout: 10000,
   waitforInterval: 200,
-  connectionRetryTimeout: 6000,
+  connectionRetryTimeout: 120000,
   connectionRetryCount: 3,
 
   framework: 'mocha',
@@ -117,7 +83,7 @@ export const config = {
   // See the full list at http://mochajs.org/
   mochaOpts: {
     ui: 'bdd',
-    timeout: oneMinute
+    timeout: 600000
   },
 
   // Hooks

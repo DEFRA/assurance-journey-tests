@@ -16,7 +16,7 @@ export const config = {
   // gets prepended directly.
   baseUrl: `http://localhost:3000`,
 
-  user: process.env.BROWSERSTACK_USER,
+  user: process.env.BROWSERSTACK_USERNAME,
   key: process.env.BROWSERSTACK_KEY,
 
   // Tests to run
@@ -48,7 +48,7 @@ export const config = {
       {
         testObservability: true, // Disable if you do not want to use the browserstack test observer functionality
         testObservabilityOptions: {
-          user: process.env.BROWSERSTACK_USER,
+          user: process.env.BROWSERSTACK_USERNAME,
           key: process.env.BROWSERSTACK_KEY,
           projectName: 'cdp-node-env-test-suite', // should match project in browserstack
           buildName: `assurance-journey-tests-${process.env.ENVIRONMENT}`
