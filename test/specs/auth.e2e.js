@@ -223,18 +223,30 @@ async function handlePasswordScreen() {
   await expect(signInButton).toBeEnabled()
   await signInButton.click()
 
-  // Wait for navigation to complete
+  // Check if "Stay signed in?" page appears and handle it
+  const currentUrl = await browser.getUrl()
+  if (currentUrl.includes('login.microsoftonline.com')) {
+    const pageText = await browser.execute(() => document.body.textContent)
+    if (pageText.includes('Stay signed in')) {
+      const yesButton = await $('input[type="submit"][value="Yes"]')
+      if (await yesButton.isExisting()) {
+        await yesButton.click()
+      }
+    }
+  }
+
+  // Wait for final redirect away from Microsoft login
   await browser.waitUntil(
     async () => {
       const url = await browser.getUrl()
       return (
-        !url.includes('login.microsoftonline.com') ||
-        url.includes('sso_reload=true')
+        !url.includes('login.microsoftonline.com') || url.includes('localhost')
       )
     },
     {
       timeout: 20000,
-      timeoutMsg: 'Expected to be redirected after password entry'
+      timeoutMsg:
+        'Expected to be redirected after password entry and Stay signed in handling'
     }
   )
 }
@@ -277,68 +289,30 @@ async function handleAuthorizationScreen() {
 /**
  * Helper function to wait for and handle the stay signed in screen
  */
-async function handleStaySignedInScreen() {
-  // Wait for page to be ready
-  await browser.waitUntil(
-    async () => {
-      const readyState = await browser.execute(() => document.readyState)
-      return readyState === 'complete'
-    },
-    {
-      timeout: 10000,
-      timeoutMsg: 'Page did not load completely'
-    }
-  )
-
-  // Wait for and click the Yes button
-  const yesButton = await $('input[type="submit"]')
-  await expect(yesButton).toBeDisplayed()
-  await expect(yesButton).toBeEnabled()
-  await yesButton.click()
-
-  // Wait for navigation to complete, including the appverify page
-  await browser.waitUntil(
-    async () => {
-      const url = await browser.getUrl()
-      // Allow the appverify page during verification
-      if (url.includes('appverify')) {
-        return true
-      }
-      // Wait for final redirect to application
-      return !url.includes('login.microsoftonline.com')
-    },
-    {
-      timeout: 30000, // Increased timeout to 30 seconds for verification
-      timeoutMsg: 'Expected to be redirected after stay signed in choice'
-    }
-  )
-}
+// Note: handleStaySignedInScreen function removed - now handled inline in the login flow
 
 describe('Authentication', () => {
   describe('Direct Microsoft Connectivity', () => {
     it('should connect directly to Microsoft login to test proxy connectivity', async () => {
-      // Clear any existing cookies
-      await browser.deleteAllCookies()
-
-      // Test direct connection to Microsoft login (bypasses our app completely)
+      // First, test direct connectivity to Microsoft login to isolate redirect issues
       const directUrl = 'https://login.microsoftonline.com/'
-
       await browser.url(directUrl)
 
+      // Wait for the page to load
       await browser.waitUntil(
         async () => {
-          const url = await browser.getUrl()
-          return url.includes('microsoft')
+          const readyState = await browser.execute(() => document.readyState)
+          return readyState === 'complete'
         },
         {
-          timeout: 30000, // Increased timeout for proxy connectivity
-          timeoutMsg:
-            'Cannot connect directly to Microsoft login - proxy may not be working'
+          timeout: 30000,
+          timeoutMsg: 'Microsoft login page did not load'
         }
       )
 
-      // Take a screenshot to confirm we reached Microsoft
-      await browser.takeScreenshot()
+      // Verify we can access Microsoft login directly
+      const currentUrl = await browser.getUrl()
+      await expect(currentUrl).toContain('login.microsoftonline.com')
     })
   })
 
@@ -352,35 +326,28 @@ describe('Authentication', () => {
     })
 
     it('should complete the Azure AD login flow and verify authentication', async () => {
-      // Wait for redirect to Microsoft login page
+      // Wait for redirect to Microsoft login
       await browser.waitUntil(
         async () => {
           const url = await browser.getUrl()
           return (
             url.includes('login.microsoftonline.com') ||
-            url.includes('microsoft.com/') ||
-            url.includes('login.live.com')
+            url.includes('microsoft.com/')
           )
         },
         {
-          timeout: 20000,
-          timeoutMsg: 'Expected to be redirected to Microsoft login page'
+          timeout: 30000,
+          timeoutMsg: 'Not redirected to Microsoft login page'
         }
       )
 
       await handleUsernameScreen()
-      await handlePasswordScreen()
+      await handlePasswordScreen() // Now handles "Stay signed in?" page internally
 
       try {
         await handleAuthorizationScreen()
       } catch (e) {
         // Authorization screen not present, continuing...
-      }
-
-      try {
-        await handleStaySignedInScreen()
-      } catch (e) {
-        // Stay signed in screen not present, continuing...
       }
 
       // Wait for redirect back to application and page to load
