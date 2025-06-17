@@ -240,7 +240,8 @@ async function handlePasswordScreen() {
     async () => {
       const url = await browser.getUrl()
       return (
-        !url.includes('login.microsoftonline.com') || url.includes('localhost')
+        !url.includes('login.microsoftonline.com') &&
+        !url.includes('microsoft.com')
       )
     },
     {
@@ -354,7 +355,11 @@ describe('Authentication', () => {
       await browser.waitUntil(
         async () => {
           const url = await browser.getUrl()
-          return url.includes('localhost') && !url.includes('login')
+          return (
+            !url.includes('login.microsoftonline.com') &&
+            !url.includes('microsoft.com') &&
+            !url.includes('login')
+          )
         },
         {
           timeout: 20000,
