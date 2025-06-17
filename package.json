@@ -29,8 +29,9 @@
     "lint:fix": "eslint . --fix",
     "postinstall": "npm run setup:husky",
     "setup:husky": "node -e \"try { (await import('husky')).default() } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e }\" --input-type module",
-    "report": "allure generate allure-results --single-file --clean",
-    "report:publish": "npm run report; ./bin/publish-tests.sh"
+    "report": "allure generate allure-results --single-file --clean && node -e \"import('./allure-accessibility-plugin/allure-accessibility-integration.js').then(m => m.integrateAccessibilityWithAllure())\"",
+    "report:open": "npm run report && allure open allure-report",
+    "report:publish": "npm run report && ./bin/publish-tests.sh"
   },
   "dependencies": {
     "@wdio/allure-reporter": "9.9.0",
