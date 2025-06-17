@@ -28,17 +28,12 @@ export const config = {
 
   capabilities: [
     {
-      // Use CDP proxies directly instead of localhost proxy
-      ...(process.env.CDP_HTTP_PROXY && {
-        proxy: {
-          proxyType: 'manual',
-          httpProxy: new URL(process.env.CDP_HTTP_PROXY).host,
-          sslProxy: new URL(
-            process.env.CDP_HTTPS_PROXY || process.env.CDP_HTTP_PROXY
-          ).host,
-          noProxy: 'localhost,127.0.0.1'
-        }
-      }),
+      // Outbound calls must go via the proxy
+      proxy: {
+        proxyType: 'manual',
+        httpProxy: 'localhost:3128',
+        sslProxy: 'localhost:3128'
+      },
       browserName: 'chrome',
       'goog:chromeOptions': {
         args: [

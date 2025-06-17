@@ -315,6 +315,33 @@ async function handleStaySignedInScreen() {
 }
 
 describe('Authentication', () => {
+  describe('Direct Microsoft Connectivity', () => {
+    it('should connect directly to Microsoft login to test proxy connectivity', async () => {
+      // Clear any existing cookies
+      await browser.deleteAllCookies()
+
+      // Test direct connection to Microsoft login (bypasses our app completely)
+      const directUrl = 'https://login.microsoftonline.com/'
+
+      await browser.url(directUrl)
+
+      await browser.waitUntil(
+        async () => {
+          const url = await browser.getUrl()
+          return url.includes('microsoft')
+        },
+        {
+          timeout: 30000, // Increased timeout for proxy connectivity
+          timeoutMsg:
+            'Cannot connect directly to Microsoft login - proxy may not be working'
+        }
+      )
+
+      // Take a screenshot to confirm we reached Microsoft
+      await browser.takeScreenshot()
+    })
+  })
+
   describe('Login Flow', () => {
     beforeEach(async () => {
       // Clear cookies before navigating to ensure a clean state
@@ -325,24 +352,6 @@ describe('Authentication', () => {
     })
 
     it('should complete the Azure AD login flow and verify authentication', async () => {
-      // First, test direct connectivity to Microsoft login to isolate redirect issues
-      const directUrl = 'https://login.microsoftonline.com/'
-      await browser.url(directUrl)
-
-      await browser.waitUntil(
-        async () => {
-          const url = await browser.getUrl()
-
-          return url.includes('microsoft')
-        },
-        {
-          timeout: 10000,
-          timeoutMsg: 'Cannot connect directly to Microsoft login'
-        }
-      )
-      // Now test the actual app login flow
-      await browser.url('/auth/login')
-
       // Wait for redirect to Microsoft login page
       await browser.waitUntil(
         async () => {
