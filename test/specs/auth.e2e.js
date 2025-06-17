@@ -326,8 +326,7 @@ describe('Authentication', () => {
 
     it('should complete the Azure AD login flow and verify authentication', async () => {
       // First, test direct connectivity to Microsoft login to isolate redirect issues
-      const directUrl =
-        'https://login.microsoftonline.com/6f504113-6b64-43f2-ade9-242e05780007'
+      const directUrl = 'https://login.microsoftonline.com/'
       await browser.url(directUrl)
 
       await browser.waitUntil(
