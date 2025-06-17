@@ -177,4 +177,6 @@ export function generateAccessibilityReportIndex() {
   fs.writeFileSync(path.join(reportDirectory, 'index.html'), html, (err) => {
     if (err) throw err
   })
+
+  // Reports will be copied to Allure directory after Allure report generation
 }

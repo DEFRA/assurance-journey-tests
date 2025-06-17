@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { integrateAccessibilityWithAllure } from './allure-accessibility-plugin/allure-accessibility-integration.js'
 
 const oneMinute = 60 * 1000
 
@@ -231,6 +232,9 @@ export const config = {
     if (results?.failed && results.failed > 0) {
       fs.writeFileSync('FAILED', JSON.stringify(results))
     }
+
+    // Integrate accessibility reports and plugin with already-generated Allure report
+    integrateAccessibilityWithAllure()
   }
   /**
    * Gets executed when a refresh happens.

@@ -314,7 +314,7 @@ describe('Accessibility Testing', () => {
       const projectId = projectHref.split('/').pop()
 
       // Navigate directly to add assessment page
-      await browser.url(`/projects/${projectId}/assessments/add`)
+      await browser.url(`/projects/${projectId}/assessment`)
 
       // Wait for assessment page to load
       await browser.waitUntil(
@@ -331,6 +331,84 @@ describe('Accessibility Testing', () => {
 
       await analyseAccessibility('service-standards-assessment-page')
     }
+  })
+
+  it('should test service standards detail page accessibility', async () => {
+    await browser.url('/')
+
+    // Wait for page to load and find a project link
+    await browser.waitUntil(
+      async () => {
+        const readyState = await browser.execute(() => document.readyState)
+        return readyState === 'complete'
+      },
+      {
+        timeout: 10000,
+        timeoutMsg: 'Home page did not load completely'
+      }
+    )
+
+    // Try to find a project and navigate to standards detail
+    const projectLinks = await $$(
+      'a[href*="/projects/"]:not([href="/projects/add"])'
+    )
+    if (projectLinks.length > 0) {
+      const projectHref = await projectLinks[0].getAttribute('href')
+      const projectId = projectHref.split('/').pop()
+
+      // Navigate directly to standards detail page (using standard-11 as example)
+      await browser.url(`/projects/${projectId}/standards/standard-11`)
+
+      // Wait for standards detail page to load
+      await browser.waitUntil(
+        async () => {
+          const readyState = await browser.execute(() => document.readyState)
+          return readyState === 'complete'
+        },
+        {
+          timeout: 10000,
+          timeoutMsg: 'Standards detail page did not load completely'
+        }
+      )
+
+      await analyseAccessibility('standards-detail-page')
+    }
+  })
+
+  it('should test professions list page accessibility', async () => {
+    await browser.url('/professions')
+
+    // Wait for page to load
+    await browser.waitUntil(
+      async () => {
+        const readyState = await browser.execute(() => document.readyState)
+        return readyState === 'complete'
+      },
+      {
+        timeout: 10000,
+        timeoutMsg: 'Professions page did not load completely'
+      }
+    )
+
+    await analyseAccessibility('professions-list-page')
+  })
+
+  it('should test specific profession page accessibility', async () => {
+    await browser.url('/professions/architecture')
+
+    // Wait for page to load
+    await browser.waitUntil(
+      async () => {
+        const readyState = await browser.execute(() => document.readyState)
+        return readyState === 'complete'
+      },
+      {
+        timeout: 10000,
+        timeoutMsg: 'Architecture profession page did not load completely'
+      }
+    )
+
+    await analyseAccessibility('architecture-profession-page')
   })
 
   after(async () => {
