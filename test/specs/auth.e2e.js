@@ -949,7 +949,7 @@ describe('Authentication', () => {
                   }
                 )
 
-                // Select the specific standard we clicked on from the compliance table
+                // Select the specific standard we want to assess
                 const standardSelect = await $('select[name="standardId"]')
                 if (await standardSelect.isExisting()) {
                   const standardOptions = await standardSelect.$$('option')
@@ -994,6 +994,26 @@ describe('Authentication', () => {
                       availableStandards[0].value
                     )
                   }
+
+                  // Wait for help section to appear after standard selection
+                  await browser.waitUntil(
+                    async () => {
+                      try {
+                        const helpSection = await $('#standard-help')
+                        return (
+                          (await helpSection.isExisting()) &&
+                          (await helpSection.isDisplayed())
+                        )
+                      } catch (error) {
+                        return false
+                      }
+                    },
+                    {
+                      timeout: 3000,
+                      timeoutMsg:
+                        'Help section did not appear after standard selection'
+                    }
+                  )
                 }
 
                 // Define status arrays at a higher scope
@@ -1359,6 +1379,20 @@ describe('Authentication', () => {
                 }
               )
 
+              // Wait for edit form to be fully loaded
+              await browser.waitUntil(
+                async () => {
+                  const readyState = await browser.execute(
+                    () => document.readyState
+                  )
+                  return readyState === 'complete'
+                },
+                {
+                  timeout: 5000,
+                  timeoutMsg: 'Edit form not fully loaded'
+                }
+              )
+
               // Verify the form is pre-populated with existing data
               const professionSelect = await $('select[name="professionId"]')
               const standardSelect = await $('select[name="standardId"]')
@@ -1558,6 +1592,20 @@ describe('Authentication', () => {
                   {
                     timeout: 10000,
                     timeoutMsg: 'Edit form did not load'
+                  }
+                )
+
+                // Wait for edit form to be fully loaded
+                await browser.waitUntil(
+                  async () => {
+                    const readyState = await browser.execute(
+                      () => document.readyState
+                    )
+                    return readyState === 'complete'
+                  },
+                  {
+                    timeout: 5000,
+                    timeoutMsg: 'Edit form not ready in history test'
                   }
                 )
 
