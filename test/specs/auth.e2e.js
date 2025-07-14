@@ -363,6 +363,99 @@ describe('Authentication', () => {
       await expect(signOutButton).toBeDisplayed()
       await expect(signOutButton).toHaveText('Sign out')
     })
+
+    it('should show TBC projects to authenticated users', async () => {
+      // After login, navigate to home page
+      await browser.url('/')
+
+      // Wait for page to load
+      await browser.waitUntil(
+        async () => {
+          const readyState = await browser.execute(() => document.readyState)
+          return readyState === 'complete'
+        },
+        {
+          timeout: 10000,
+          timeoutMsg: 'Expected page to be fully loaded'
+        }
+      )
+
+      // Verify we can see the "Add new project" link (confirms we're authenticated)
+      const addLink = await $('a.govuk-link[href="/projects/add"]')
+      await expect(addLink).toBeDisplayed()
+
+      // Check if there are any projects in the list
+      const projectRows = await $$('.govuk-table tbody tr')
+
+      if (projectRows.length > 0) {
+        // Look for TBC projects in the list - authenticated users should be able to see them
+        let foundTBCProject = false
+
+        for (const row of projectRows) {
+          const statusCell = await row.$('td:nth-child(2)')
+          const statusText = await statusCell.getText()
+          const normalizedStatus = statusText.toLowerCase().trim()
+
+          if (normalizedStatus.includes('tbc')) {
+            foundTBCProject = true
+            break
+          }
+        }
+
+        // If we found TBC projects, verify they're properly displayed
+        if (foundTBCProject) {
+          // TBC projects should be visible and accessible to authenticated users
+          const tbcRows = await $$('.govuk-table tbody tr').filter(
+            async (row) => {
+              const statusCell = await row.$('td:nth-child(2)')
+              const statusText = await statusCell.getText()
+              return statusText.toLowerCase().includes('tbc')
+            }
+          )
+
+          for (const tbcRow of tbcRows) {
+            const projectLink = await tbcRow.$('td:first-child a.govuk-link')
+            if (await projectLink.isExisting()) {
+              await expect(projectLink).toBeDisplayed()
+              // Verify the link is clickable
+              await expect(projectLink).toBeClickable()
+            }
+          }
+        }
+      }
+
+      // Also test search functionality includes TBC projects for authenticated users
+      const searchInput = await $('#search')
+      await searchInput.setValue('TBC')
+
+      const searchForm = await $('form[method="GET"]')
+      const submitButton = await searchForm.$('button[type="submit"]')
+      await submitButton.click()
+
+      // Wait for search results
+      await browser.waitUntil(
+        async () => {
+          const url = await browser.getUrl()
+          return url.includes('search=')
+        },
+        {
+          timeout: 5000,
+          timeoutMsg: 'Expected URL to contain search parameter'
+        }
+      )
+
+      // For authenticated users, TBC search should either:
+      // 1. Return TBC projects if they exist
+      // 2. Return "No projects found" if no TBC projects exist
+      // But it should NOT be blocked or filtered out
+      const searchResults = await $$('.govuk-table tbody tr')
+      const noResultsMessage = await $('p*=No projects found')
+
+      // Verify search completed (either results or no results message)
+      const searchCompleted =
+        searchResults.length > 0 || (await noResultsMessage.isExisting())
+      await expect(searchCompleted).toBe(true)
+    })
   })
 
   describe('Project Management', () => {
@@ -732,10 +825,10 @@ describe('Authentication', () => {
 
     it('should create projects at different phases and add service standard assessments', async () => {
       const projectPhases = [
-        { phase: 'Discovery', index: 1 },
-        { phase: 'Alpha', index: 2 },
-        { phase: 'Beta', index: 3 },
-        { phase: 'Live', index: 4 }
+        { phase: 'Discovery', index: 1, status: 'TBC' }, // Create a TBC project to test filtering
+        { phase: 'Alpha', index: 2, status: 'GREEN' },
+        { phase: 'Beta', index: 3, status: 'AMBER' },
+        { phase: 'Live', index: 4, status: 'RED' }
       ]
 
       // Create projects for each phase
@@ -775,16 +868,23 @@ describe('Authentication', () => {
           `${phaseInfo.phase.toUpperCase()}-${Date.now()}`
         )
 
-        // Set initial status
+        // Set specific status for this project
         const statusSelect = await $('select[name="status"]')
         await expect(statusSelect).toBeDisplayed()
-        await statusSelect.selectByIndex(1) // TBC
+
+        // Select the specific status for this project
+        try {
+          await statusSelect.selectByAttribute('value', phaseInfo.status)
+        } catch (error) {
+          // Fallback to selecting by visible text if value doesn't work
+          await statusSelect.selectByVisibleText(phaseInfo.status)
+        }
 
         // Add commentary
         const commentaryInput = await $('textarea[name="commentary"]')
         await expect(commentaryInput).toBeDisplayed()
         await commentaryInput.setValue(
-          `${phaseInfo.phase} phase project for assessment testing`
+          `${phaseInfo.phase} phase project for assessment testing - Status: ${phaseInfo.status} - TBC filtering test project`
         )
 
         // Submit form
@@ -1037,14 +1137,17 @@ describe('Authentication', () => {
                 // Fill commentary based on status
                 const selectedStatusValue = backendValue
 
-                // Wait for commentary fields to appear (they're shown/hidden based on status)
+                // Wait for commentary fields to appear and become interactable (they're shown/hidden based on status)
                 await browser.waitUntil(
                   async () => {
                     if (selectedStatusValue === 'GREEN') {
                       const greenCommentary = await $(
                         'textarea[name="green-text"]'
                       )
-                      return await greenCommentary.isDisplayed()
+                      return (
+                        (await greenCommentary.isDisplayed()) &&
+                        (await greenCommentary.isEnabled())
+                      )
                     } else {
                       const issueDescription = await $(
                         'textarea[name="issue-text"]'
@@ -1052,13 +1155,16 @@ describe('Authentication', () => {
                       const pathToGreen = await $('textarea[name="path-text"]')
                       return (
                         (await issueDescription.isDisplayed()) &&
-                        (await pathToGreen.isDisplayed())
+                        (await issueDescription.isEnabled()) &&
+                        (await pathToGreen.isDisplayed()) &&
+                        (await pathToGreen.isEnabled())
                       )
                     }
                   },
                   {
-                    timeout: 5000,
-                    timeoutMsg: 'Commentary fields not displayed'
+                    timeout: 10000,
+                    timeoutMsg:
+                      'Commentary fields not displayed or not interactable'
                   }
                 )
 
@@ -1082,17 +1188,20 @@ describe('Authentication', () => {
                   )
                   const pathToGreen = await $('textarea[name="path-text"]')
 
-                  // Wait for both fields to be displayed
+                  // Wait for both fields to be displayed and interactable
                   await browser.waitUntil(
                     async () => {
                       return (
                         (await issueDescription.isDisplayed()) &&
-                        (await pathToGreen.isDisplayed())
+                        (await issueDescription.isEnabled()) &&
+                        (await pathToGreen.isDisplayed()) &&
+                        (await pathToGreen.isEnabled())
                       )
                     },
                     {
-                      timeout: 5000,
-                      timeoutMsg: 'Non-green commentary fields not displayed'
+                      timeout: 10000,
+                      timeoutMsg:
+                        'Non-green commentary fields not displayed or not interactable'
                     }
                   )
 

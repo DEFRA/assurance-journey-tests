@@ -45,6 +45,11 @@ async function doProjectsExist() {
 }
 
 describe('Home page', () => {
+  /**
+   * NOTE: TBC projects are hidden from unauthenticated users but visible to authenticated users.
+   * Tests are designed to work in both scenarios and include specific TBC filtering tests.
+   */
+
   beforeEach(async () => {
     // Navigate to the home page before each test
     await browser.url('/')
@@ -346,6 +351,119 @@ describe('Home page', () => {
       } else {
         // If not authenticated, link should not exist
         await expect(addLink).not.toBeExisting()
+      }
+    })
+  })
+
+  describe('TBC Project Filtering', () => {
+    it('should hide TBC projects from unauthenticated users', async () => {
+      const authenticated = await isUserAuthenticated()
+
+      if (!authenticated) {
+        // For unauthenticated users, verify no projects with TBC status are visible
+        const tableRows = await $$('.govuk-table tbody tr')
+
+        if (tableRows.length > 0) {
+          // Check each visible project to ensure none have TBC status
+          for (const row of tableRows) {
+            const statusCell = await row.$('td:nth-child(2)')
+            const statusText = await statusCell.getText()
+            const normalizedStatus = statusText.toLowerCase().trim()
+
+            // TBC projects should not be visible to unauthenticated users
+            await expect(normalizedStatus).not.toContain('tbc')
+          }
+        }
+
+        // Also verify that searching for TBC projects returns no results
+        const searchInput = await $('#search')
+        await searchInput.setValue('TBC')
+
+        const searchForm = await $('form[method="GET"]')
+        const submitButton = await searchForm.$('button[type="submit"]')
+        await submitButton.click()
+
+        // Wait for search results
+        await browser.waitUntil(
+          async () => {
+            const url = await browser.getUrl()
+            return url.includes('search=')
+          },
+          {
+            timeout: 5000,
+            timeoutMsg: 'Expected URL to contain search parameter'
+          }
+        )
+
+        // Should show no results or explicitly state no projects found
+        const noResultsMessage = await $('p*=No projects found')
+        const resultRows = await $$('.govuk-table tbody tr')
+
+        // Either no results message OR no table rows (both are valid)
+        const hasNoResults =
+          (await noResultsMessage.isExisting()) || resultRows.length === 0
+        await expect(hasNoResults).toBe(true)
+      }
+    })
+
+    it('should show appropriate messaging when no projects are visible to unauthenticated users', async () => {
+      const authenticated = await isUserAuthenticated()
+      const hasProjects = await doProjectsExist()
+
+      if (!authenticated && !hasProjects) {
+        // If no projects are visible to unauthenticated users, should show appropriate message
+        const noProjectsMessage = await $('p*=No projects available')
+        if (await noProjectsMessage.isExisting()) {
+          await expect(noProjectsMessage).toBeDisplayed()
+        }
+
+        // Should not show a table if no projects are available
+        const projectTable = await $('.govuk-table')
+        await expect(projectTable).not.toBeExisting()
+      }
+    })
+
+    it('should maintain search functionality even with TBC filtering', async () => {
+      const authenticated = await isUserAuthenticated()
+
+      if (!authenticated) {
+        // Search should work normally, just excluding TBC projects from results
+        const searchInput = await $('#search')
+        await searchInput.setValue('Project') // Generic search term
+
+        const searchForm = await $('form[method="GET"]')
+        const submitButton = await searchForm.$('button[type="submit"]')
+        await submitButton.click()
+
+        // Wait for search to complete
+        await browser.waitUntil(
+          async () => {
+            const url = await browser.getUrl()
+            return url.includes('search=')
+          },
+          {
+            timeout: 5000,
+            timeoutMsg: 'Expected URL to contain search parameter'
+          }
+        )
+
+        // Verify search functionality works (results or no results message)
+        const searchResults = await $$('.govuk-table tbody tr')
+        const noResultsMessage = await $('p*=No projects found')
+
+        const searchWorked =
+          searchResults.length > 0 || (await noResultsMessage.isExisting())
+        await expect(searchWorked).toBe(true)
+
+        // If there are results, ensure none are TBC status
+        if (searchResults.length > 0) {
+          for (const row of searchResults) {
+            const statusCell = await row.$('td:nth-child(2)')
+            const statusText = await statusCell.getText()
+            const normalizedStatus = statusText.toLowerCase().trim()
+            await expect(normalizedStatus).not.toContain('tbc')
+          }
+        }
       }
     })
   })

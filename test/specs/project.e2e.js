@@ -29,6 +29,9 @@ describe('Project detail page', () => {
   /**
    * This test suite focuses on testing the project detail page
    * for unauthenticated users only
+   *
+   * NOTE: TBC projects are hidden from unauthenticated users,
+   * so these tests will only access non-TBC projects
    */
 
   // We'll need a project ID to test with
