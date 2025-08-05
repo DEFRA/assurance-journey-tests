@@ -58,7 +58,7 @@ describe('Home page', () => {
   it('should have the correct page title', async () => {
     // Using the correct WebdriverIO assertion pattern
     const title = await browser.getTitle()
-    await expect(title).toBe('Home | DDTS Assurance')
+    await expect(title).toBe('Home | Defra Digital Assurance')
   })
 
   it('should display the main heading "Projects"', async () => {

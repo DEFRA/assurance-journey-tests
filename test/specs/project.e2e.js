@@ -63,9 +63,9 @@ describe('Project detail page', () => {
 
   it('should display the project detail page with the correct title', async () => {
     // We don't know the exact project name, but we expect it to be in the title
-    // and to be followed by " | DDTS Assurance" from the layout template
+    // and to be followed by " | " from the layout template
     const title = await browser.getTitle()
-    await expect(title).toContain('| DDTS Assurance')
+    await expect(title).toContain('| Defra Digital Assurance')
   })
 
   it('should display the project name as a heading', async () => {
