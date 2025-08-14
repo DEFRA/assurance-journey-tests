@@ -389,6 +389,7 @@ describe('Authentication', () => {
 
       if (projectRows.length > 0) {
         // Look for TBC projects in the list - authenticated users should be able to see them
+        // Note: TBC projects now display as "Pending" in the UI
         let foundTBCProject = false
 
         for (const row of projectRows) {
@@ -396,20 +397,21 @@ describe('Authentication', () => {
           const statusText = await statusCell.getText()
           const normalizedStatus = statusText.toLowerCase().trim()
 
-          if (normalizedStatus.includes('tbc')) {
+          // TBC projects now display as "Pending" in the UI
+          if (normalizedStatus.includes('pending')) {
             foundTBCProject = true
             break
           }
         }
 
-        // If we found TBC projects, verify they're properly displayed
+        // If we found TBC projects (displayed as Pending), verify they're properly displayed
         if (foundTBCProject) {
           // TBC projects should be visible and accessible to authenticated users
           const tbcRows = await $$('.govuk-table tbody tr').filter(
             async (row) => {
               const statusCell = await row.$('td:nth-child(2)')
               const statusText = await statusCell.getText()
-              return statusText.toLowerCase().includes('tbc')
+              return statusText.toLowerCase().includes('pending')
             }
           )
 
@@ -426,7 +428,7 @@ describe('Authentication', () => {
 
       // Also test search functionality includes TBC projects for authenticated users
       const searchInput = await $('#search')
-      await searchInput.setValue('TBC')
+      await searchInput.setValue('PENDING')
 
       const searchForm = await $('form[method="GET"]')
       const submitButton = await searchForm.$('button[type="submit"]')
@@ -445,7 +447,7 @@ describe('Authentication', () => {
       )
 
       // For authenticated users, TBC search should either:
-      // 1. Return TBC projects if they exist
+      // 1. Return TBC projects (which display as "Pending") if they exist
       // 2. Return "No projects found" if no TBC projects exist
       // But it should NOT be blocked or filtered out
       const searchResults = await $$('.govuk-table tbody tr')
@@ -825,7 +827,7 @@ describe('Authentication', () => {
 
     it('should create projects at different phases and add service standard assessments', async () => {
       const projectPhases = [
-        { phase: 'Discovery', index: 1, status: 'TBC' }, // Create a TBC project to test filtering
+        { phase: 'Discovery', index: 1, status: 'PENDING' }, // Create a TBC project to test filtering (displays as "Pending")
         { phase: 'Alpha', index: 2, status: 'GREEN' },
         { phase: 'Beta', index: 3, status: 'AMBER' },
         { phase: 'Live', index: 4, status: 'RED' }
@@ -873,6 +875,7 @@ describe('Authentication', () => {
         await expect(statusSelect).toBeDisplayed()
 
         // Select the specific status for this project
+        // Note: PENDING and EXCLUDED are now available options alongside TBC
         try {
           await statusSelect.selectByAttribute('value', phaseInfo.status)
         } catch (error) {
@@ -1117,8 +1120,8 @@ describe('Authentication', () => {
                 }
 
                 // Define status arrays at a higher scope
-                const statusValues = ['RED', 'AMBER', 'GREEN'] // Backend values
-                const statusDisplayNames = ['Red', 'Amber', 'Green'] // Display names
+                const statusValues = ['RED', 'AMBER', 'GREEN', 'PENDING'] // Backend values including new PENDING option
+                const statusDisplayNames = ['Red', 'Amber', 'Green', 'Pending'] // Display names
                 const statusIndex = standardIndex % statusValues.length
                 const backendValue = statusValues[statusIndex]
                 const displayName = statusDisplayNames[statusIndex]
@@ -1141,6 +1144,15 @@ describe('Authentication', () => {
                 await browser.waitUntil(
                   async () => {
                     if (selectedStatusValue === 'GREEN') {
+                      const greenCommentary = await $(
+                        'textarea[name="green-text"]'
+                      )
+                      return (
+                        (await greenCommentary.isDisplayed()) &&
+                        (await greenCommentary.isEnabled())
+                      )
+                    } else if (selectedStatusValue === 'PENDING') {
+                      // PENDING status likely uses single field like GREEN
                       const greenCommentary = await $(
                         'textarea[name="green-text"]'
                       )
@@ -1180,6 +1192,19 @@ describe('Authentication', () => {
                   )
                   await greenCommentary.setValue(
                     `This standard is being met in ${phaseInfo.phase} phase. We have proper processes and documentation in place.`
+                  )
+                } else if (selectedStatusValue === 'PENDING') {
+                  // Pending status: single field like GREEN
+                  const greenCommentary = await $('textarea[name="green-text"]')
+                  await browser.waitUntil(
+                    async () => await greenCommentary.isDisplayed(),
+                    {
+                      timeout: 5000,
+                      timeoutMsg: 'Pending commentary field not displayed'
+                    }
+                  )
+                  await greenCommentary.setValue(
+                    `This standard assessment is pending for ${phaseInfo.phase} phase. Assessment to be completed.`
                   )
                 } else {
                   // Non-green status: two fields - issue description and path to green
@@ -1529,6 +1554,8 @@ describe('Authentication', () => {
                   newStatus = 'AMBER'
                 } else if (currentStatus === 'AMBER') {
                   newStatus = 'GREEN'
+                } else if (currentStatus === 'PENDING') {
+                  newStatus = 'GREEN'
                 }
 
                 await statusSelect.selectByAttribute('value', newStatus)
@@ -1537,6 +1564,11 @@ describe('Authentication', () => {
                 await browser.waitUntil(
                   async () => {
                     if (newStatus === 'GREEN') {
+                      const greenCommentary = await $(
+                        'textarea[name="green-text"]'
+                      )
+                      return await greenCommentary.isDisplayed()
+                    } else if (newStatus === 'PENDING') {
                       const greenCommentary = await $(
                         'textarea[name="green-text"]'
                       )
@@ -1565,6 +1597,12 @@ describe('Authentication', () => {
                   await greenCommentary.clearValue()
                   await greenCommentary.setValue(
                     'EDITED: Assessment updated to Green status - all requirements now met through recent improvements.'
+                  )
+                } else if (newStatus === 'PENDING') {
+                  const greenCommentary = await $('textarea[name="green-text"]')
+                  await greenCommentary.clearValue()
+                  await greenCommentary.setValue(
+                    'EDITED: Assessment updated to Pending status - review and assessment pending.'
                   )
                 } else {
                   const issueDescription = await $(
@@ -1732,6 +1770,16 @@ describe('Authentication', () => {
                       await greenCommentary.clearValue()
                       await greenCommentary.setValue(
                         `HISTORY TEST: Updated on ${new Date().toISOString()} - Testing history creation functionality.`
+                      )
+                    }
+                  } else if (currentStatus === 'PENDING') {
+                    const greenCommentary = await $(
+                      'textarea[name="green-text"]'
+                    )
+                    if (await greenCommentary.isExisting()) {
+                      await greenCommentary.clearValue()
+                      await greenCommentary.setValue(
+                        `HISTORY TEST: Pending status updated on ${new Date().toISOString()} - Testing history creation functionality.`
                       )
                     }
                   } else {

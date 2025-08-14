@@ -108,7 +108,7 @@ describe('Project detail page', () => {
       'RED',
       'AMBER',
       'GREEN',
-      'TBC',
+      'PENDING', // TBC projects now display as "Pending"
       'Beta',
       'Alpha',
       'Discovery',
