@@ -92,11 +92,9 @@ describe('Project detail page', () => {
   })
 
   it('should display the current delivery status with RAG tag', async () => {
-    const statusHeading = await $('h2.govuk-heading-m.inline-heading')
+    // Updated to match the new div structure with flexbox styling
+    const statusHeading = await $('div*=Current delivery status:')
     await expect(statusHeading).toBeDisplayed()
-
-    const headingText = await statusHeading.getText()
-    await expect(headingText).toContain('Current delivery status:')
 
     // Status tag may be rendered differently by renderStatusTag() function
     const statusTag = await $('.govuk-tag')
@@ -105,14 +103,11 @@ describe('Project detail page', () => {
     // Status should be one of the valid project statuses
     const status = await statusTag.getText()
     await expect([
-      'RED',
-      'AMBER',
-      'GREEN',
-      'PENDING', // TBC projects now display as "Pending"
-      'Beta',
-      'Alpha',
-      'Discovery',
-      'Live'
+      'Red',
+      'Amber', 
+      'Green',
+      'Pending', // TBC projects now display as "Pending"
+      'Excluded'
     ]).toContain(status)
   })
 
