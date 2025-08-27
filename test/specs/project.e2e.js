@@ -96,15 +96,16 @@ describe('Project detail page', () => {
     const statusHeading = await $('div*=Current delivery status:')
     await expect(statusHeading).toBeDisplayed()
 
-    // Status tag may be rendered differently by renderStatusTag() function
-    const statusTag = await $('.govuk-tag')
+    // Find the status tag specifically within the delivery status section
+    // This ensures we get the project delivery status, not service standard status tags
+    const statusTag = await statusHeading.$('.govuk-tag')
     await expect(statusTag).toBeDisplayed()
 
-    // Status should be one of the valid project statuses
+    // Status should be one of the valid project delivery statuses
     const status = await statusTag.getText()
     await expect([
       'Red',
-      'Amber', 
+      'Amber',
       'Green',
       'Pending', // TBC projects now display as "Pending"
       'Excluded'
