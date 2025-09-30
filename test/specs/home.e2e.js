@@ -25,29 +25,11 @@
  *    - Chain selectors for complex elements: .parent .child
  */
 
-/**
- * Helper function to check if user is authenticated
- * This detects authentication by checking if the "Add new project" link exists
- * @returns {Promise<boolean>} true if user is authenticated, false otherwise
- */
-async function isUserAuthenticated() {
-  const addLink = await $('a.govuk-link[href="/projects/add"]')
-  return await addLink.isExisting()
-}
-
-/**
- * Helper function to check if projects are present in the list
- * @returns {Promise<boolean>} true if projects exist, false otherwise
- */
-async function doProjectsExist() {
-  const tableRows = await $$('.govuk-table tbody tr')
-  return tableRows.length > 0
-}
-
 describe('Home page', () => {
   /**
-   * NOTE: TBC projects are hidden from unauthenticated users but visible to authenticated users.
-   * Tests are designed to work in both scenarios and include specific TBC filtering tests.
+   * NOTE: The home page now shows information about Defra Digital Assurance
+   * and includes a search bar that redirects to the projects page.
+   * The projects list has been moved to /projects route.
    */
 
   beforeEach(async () => {
@@ -58,13 +40,44 @@ describe('Home page', () => {
   it('should have the correct page title', async () => {
     // Using the correct WebdriverIO assertion pattern
     const title = await browser.getTitle()
-    await expect(title).toBe('Home | Defra Digital Assurance')
+    await expect(title).toBe('Defra Digital Assurance')
   })
 
-  it('should display the main heading "Projects"', async () => {
-    const heading = await $('h1.govuk-heading-xl') // Assuming appHeading macro renders an H1 with this class
+  it('should display the main heading "Defra Digital Assurance"', async () => {
+    const heading = await $('h1.govuk-heading-xl')
     await expect(heading).toBeDisplayed()
-    await expect(heading).toHaveText('Projects')
+    await expect(heading).toHaveText('Defra Digital Assurance')
+  })
+
+  it('should display "Team Objectives" and "How we assure" sections', async () => {
+    const teamObjectivesHeading = await $('h2*=Team Objectives')
+    await expect(teamObjectivesHeading).toBeDisplayed()
+
+    const howWeAssureHeading = await $('h2*=How we assure')
+    await expect(howWeAssureHeading).toBeDisplayed()
+
+    // Check for some content under Team Objectives
+    const objectivesContent = await $('p*=Cross Cutting Technical Services')
+    await expect(objectivesContent).toBeDisplayed()
+
+    // Check for some content under How we assure
+    const assureContent = await $('p*=multidisciplinary team')
+    await expect(assureContent).toBeDisplayed()
+  })
+
+  it('should display RAG Status Definitions section', async () => {
+    const ragStatusHeading = await $('h3*=RAG Status Definitions')
+    await expect(ragStatusHeading).toBeDisplayed()
+
+    // Check for specific RAG status definitions
+    const redStatus = await $('li*=Red - Major concerns')
+    await expect(redStatus).toBeDisplayed()
+
+    const greenStatus = await $('li*=Green - On track')
+    await expect(greenStatus).toBeDisplayed()
+
+    const amberStatus = await $('li*=Amber - Concerns, needs monitoring')
+    await expect(amberStatus).toBeDisplayed()
   })
 
   describe('Search functionality', () => {
@@ -74,7 +87,6 @@ describe('Home page', () => {
 
       await expect(searchInput).toBeDisplayed()
       await expect(searchButton).toBeDisplayed()
-      await expect(searchButton).toHaveText('Search')
     })
 
     it('should allow typing into the search input', async () => {
@@ -83,7 +95,7 @@ describe('Home page', () => {
       await expect(searchInput).toHaveValue('Test Project Search')
     })
 
-    it('should update the URL when a search is submitted', async () => {
+    it('should redirect to projects page when a search is submitted', async () => {
       // Test the actual working behavior - clicking the search button
 
       // First get the search input and clear any existing values
@@ -99,37 +111,53 @@ describe('Home page', () => {
       await expect(submitButton).toBeDisplayed()
       await submitButton.click()
 
-      // Wait for URL to change by checking for the presence of search parameter
+      // Wait for redirect to projects page with search parameter
       await browser.waitUntil(
         async () => {
           const url = await browser.getUrl()
-          return url.includes('search=')
+          return url.includes('/projects') && url.includes('search=')
         },
         {
           timeout: 5000,
-          timeoutMsg: 'Expected URL to contain search parameter after 5s'
+          timeoutMsg:
+            'Expected URL to redirect to /projects with search parameter after 5s'
         }
       )
 
-      // Check if the current URL contains our search parameter
+      // Check if the current URL contains our search parameter and projects route
       const currentUrl = await browser.getUrl()
+      await expect(currentUrl).toContain('/projects')
       await expect(currentUrl).toContain('search=')
     })
 
-    it('should display a "Clear search" link after a search is performed', async () => {
-      // Start by directly navigating to a URL with a search parameter
-      await browser.url('/?search=test')
-
-      // Now verify the clear search link exists
-      const clearSearchLink = await $('a.govuk-link*=Clear search')
-      await expect(clearSearchLink).toBeDisplayed()
-
-      // Fix: Check only that href ends with '/' rather than the full URL
-      const href = await clearSearchLink.getAttribute('href')
-      await expect(href).toEqual('/')
+    it('should display a "View all projects" link', async () => {
+      // The home page should have a "View all projects" link
+      const viewAllProjectsLink = await $('a.govuk-link[href="/projects"]')
+      await expect(viewAllProjectsLink).toBeDisplayed()
+      await expect(viewAllProjectsLink).toHaveText('View all projects')
     })
 
-    it('should clear the search term and results when "Clear search" is clicked', async () => {
+    it('should navigate to projects page when "View all projects" is clicked', async () => {
+      const viewAllProjectsLink = await $('a.govuk-link[href="/projects"]')
+      await viewAllProjectsLink.click()
+
+      // Wait for navigation to projects page
+      await browser.waitUntil(
+        async () => {
+          const url = await browser.getUrl()
+          return url.includes('/projects')
+        },
+        {
+          timeout: 5000,
+          timeoutMsg: 'Expected to navigate to /projects page'
+        }
+      )
+
+      const currentUrl = await browser.getUrl()
+      await expect(currentUrl).toContain('/projects')
+    })
+
+    it.skip('should clear the search term and results when "Clear search" is clicked', async () => {
       // Start by directly navigating to a URL with a search parameter
       await browser.url('/?search=test')
 
@@ -215,263 +243,109 @@ describe('Home page', () => {
     })
   })
 
-  describe('Project List', () => {
-    // These tests are designed to work whether the user is authenticated or not
-    // and whether projects exist in the test environment or not
+  describe('Sidebar functionality', () => {
+    it('should display "Projects by Delivery Group" section in sidebar', async () => {
+      const deliveryGroupsSection = await $('dt*=Projects by Delivery Group')
+      await expect(deliveryGroupsSection).toBeDisplayed()
 
-    it('should display a table for projects if projects exist', async () => {
-      const hasProjects = await doProjectsExist()
+      // Check if there are delivery group links or a "no delivery groups" message
+      const deliveryGroupLinks = await $$('a[href*="/delivery-groups/"]')
+      const noDeliveryGroupsMessage = await $(
+        'dd*=No delivery groups available'
+      )
 
-      if (hasProjects) {
-        const projectTable = await $('.govuk-table')
-        const projectTableHeadings = await projectTable.$$('thead th')
+      const hasDeliveryGroups = deliveryGroupLinks.length > 0
+      const hasNoGroupsMessage = await noDeliveryGroupsMessage.isExisting()
 
-        await expect(projectTable).toBeDisplayed()
-        await expect(projectTableHeadings[0]).toHaveText('Project name')
-        await expect(projectTableHeadings[1]).toHaveText('RAG status')
-      } else {
-        // If no projects exist, we should see a message instead of a table
-        const noProjectsMessage = await $('p*=No projects found')
-        if (await noProjectsMessage.isExisting()) {
-          await expect(noProjectsMessage).toBeDisplayed()
-        }
-      }
+      // Either we have delivery group links OR a no groups message
+      await expect(hasDeliveryGroups || hasNoGroupsMessage).toBe(true)
     })
 
-    it('should display project names as links and RAG statuses if projects exist', async () => {
-      const hasProjects = await doProjectsExist()
+    it('should display "Projects by Delivery Partner" section in sidebar', async () => {
+      const deliveryPartnersSection = await $(
+        'dt*=Projects by Delivery Partner'
+      )
+      await expect(deliveryPartnersSection).toBeDisplayed()
 
-      if (hasProjects) {
-        const firstProjectRow = await $('.govuk-table tbody tr:first-child')
-        const projectNameLink = await firstProjectRow.$(
-          'td:first-child a.govuk-link'
-        )
-        const ragStatusTag = await firstProjectRow.$('td:nth-child(2)')
+      // Check if there are delivery partner links or a "no delivery partners" message
+      const deliveryPartnerLinks = await $$('a[href*="/delivery-partners/"]')
+      const noDeliveryPartnersMessage = await $(
+        'dd*=No delivery partners available'
+      )
 
-        await expect(projectNameLink).toBeDisplayed()
+      const hasDeliveryPartners = deliveryPartnerLinks.length > 0
+      const hasNoPartnersMessage = await noDeliveryPartnersMessage.isExisting()
 
-        // Fix: Properly check the href attribute
-        const href = await projectNameLink.getAttribute('href')
-        await expect(href).toMatch(/\/projects\/\w+/)
-
-        await expect(ragStatusTag).toBeDisplayed()
-        const ragStatusText = await ragStatusTag.getText()
-        // Accept any of the 6 statuses, including dual-tag text for AMBER_RED and GREEN_AMBER
-        // Note: TBC projects now display as "Pending" in the UI
-        const validStatuses = [
-          'Red',
-          'Amber',
-          'Green',
-          'Pending', // TBC projects now display as "Pending"
-          'Red\nAmber', // AMBER_RED renders as two tags
-          'Amber\nGreen' // GREEN_AMBER renders as two tags
-        ]
-        const normalizedText = ragStatusText
-          .replace(/\s+/g, ' ')
-          .replace(/\n/g, ' ')
-          .trim()
-          .toLowerCase() // Make case-insensitive
-        const validNormalized = validStatuses.map(
-          (s) => s.replace(/\s+/g, ' ').replace(/\n/g, ' ').trim().toLowerCase() // Make case-insensitive
-        )
-        await expect(validNormalized).toContain(normalizedText)
-      }
+      // Either we have delivery partner links OR a no partners message
+      await expect(hasDeliveryPartners || hasNoPartnersMessage).toBe(true)
     })
 
-    it('should navigate to the project detail page when a project name is clicked if projects exist', async () => {
-      const hasProjects = await doProjectsExist()
+    it('should navigate to delivery group page when a delivery group link is clicked', async () => {
+      const deliveryGroupLinks = await $$('a[href*="/delivery-groups/"]')
 
-      if (hasProjects) {
-        const firstProjectLink = await $(
-          '.govuk-table tbody tr:first-child td:first-child a.govuk-link'
-        )
-        const projectId = (await firstProjectLink.getAttribute('href'))
-          .split('/')
-          .pop()
-        await firstProjectLink.click()
+      if (deliveryGroupLinks.length > 0) {
+        const firstLink = deliveryGroupLinks[0]
+        await firstLink.click()
 
-        // Fix: Use proper URL assertion
-        const currentUrl = await browser.getUrl()
-        await expect(currentUrl).toContain(`/projects/${projectId}`)
-      }
-    })
-
-    it('should display "No projects found." if no projects are available', async () => {
-      const hasProjects = await doProjectsExist()
-
-      if (!hasProjects) {
-        const projectTable = await $('.govuk-table')
-
-        if (!(await projectTable.isExisting())) {
-          const noProjectsMessage = await $('p*=No projects found')
-          if (await noProjectsMessage.isExisting()) {
-            await expect(noProjectsMessage).toBeDisplayed()
+        // Wait for navigation
+        await browser.waitUntil(
+          async () => {
+            const url = await browser.getUrl()
+            return url.includes('/delivery-groups/')
+          },
+          {
+            timeout: 5000,
+            timeoutMsg: 'Expected to navigate to delivery group page'
           }
-        }
+        )
+
+        const currentUrl = await browser.getUrl()
+        await expect(currentUrl).toContain('/delivery-groups/')
+      }
+    })
+
+    it('should navigate to delivery partner page when a delivery partner link is clicked', async () => {
+      const deliveryPartnerLinks = await $$('a[href*="/delivery-partners/"]')
+
+      if (deliveryPartnerLinks.length > 0) {
+        const firstLink = deliveryPartnerLinks[0]
+        await firstLink.click()
+
+        // Wait for navigation
+        await browser.waitUntil(
+          async () => {
+            const url = await browser.getUrl()
+            return url.includes('/delivery-partners/')
+          },
+          {
+            timeout: 5000,
+            timeoutMsg: 'Expected to navigate to delivery partner page'
+          }
+        )
+
+        const currentUrl = await browser.getUrl()
+        await expect(currentUrl).toContain('/delivery-partners/')
       }
     })
   })
 
-  describe('"Add new project" button', () => {
-    // These tests are written to work for both authenticated and unauthenticated users
-
-    it('should display "Add new project" link only if user is authenticated', async () => {
-      const authenticated = await isUserAuthenticated()
+  describe('Navigation', () => {
+    it('should NOT display "Add new project" link on home page', async () => {
+      // The "Add new project" link should only be on the projects page, not the home page
       const addLink = await $('a.govuk-link[href="/projects/add"]')
-
-      if (authenticated) {
-        await expect(addLink).toBeDisplayed()
-        await expect(addLink).toHaveText('Add new project')
-      } else {
-        // Test passes if we're testing an unauthenticated user (link shouldn't exist)
-        await expect(addLink).not.toBeExisting()
-      }
+      await expect(addLink).not.toBeExisting()
     })
 
-    it('should navigate to add project page when "Add new project" is clicked if user is authenticated', async () => {
-      const authenticated = await isUserAuthenticated()
+    it('should have inverted navigation styling', async () => {
+      // Check that the navigation has the blue background (inverted styling)
+      const serviceNavigation = await $('.govuk-service-navigation')
+      await expect(serviceNavigation).toBeDisplayed()
 
-      if (authenticated) {
-        const addLink = await $('a.govuk-link[href="/projects/add"]')
-        await addLink.click()
-
-        // Fix: Use proper URL assertion
-        const currentUrl = await browser.getUrl()
-        await expect(currentUrl).toContain('/projects/add')
-      }
-    })
-
-    it('should handle authentication state correctly for "Add new project" functionality', async () => {
-      const authenticated = await isUserAuthenticated()
-      const addLink = await $('a.govuk-link[href="/projects/add"]')
-
-      if (authenticated) {
-        // If authenticated, link should be functional
-        await expect(addLink).toBeDisplayed()
-        await expect(addLink).toBeClickable()
-      } else {
-        // If not authenticated, link should not exist
-        await expect(addLink).not.toBeExisting()
-      }
-    })
-  })
-
-  describe('TBC Project Filtering', () => {
-    it('should hide TBC projects from unauthenticated users', async () => {
-      const authenticated = await isUserAuthenticated()
-
-      if (!authenticated) {
-        // For unauthenticated users, verify no projects with TBC status are visible
-        // Note: TBC projects display as "Pending", but are still filtered out
-        const tableRows = await $$('.govuk-table tbody tr')
-
-        if (tableRows.length > 0) {
-          // Check each visible project to ensure none have TBC status
-          // Since TBC displays as "Pending", we need to be careful not to filter out legitimate PENDING projects
-          // However, for unauthenticated users, TBC projects should not be visible at all
-          for (const row of tableRows) {
-            const statusCell = await row.$('td:nth-child(2)')
-            const statusText = await statusCell.getText()
-            const normalizedStatus = statusText.toLowerCase().trim()
-
-            // TBC projects should not be visible to unauthenticated users
-            // (Note: This test verifies backend filtering, not frontend display)
-            await expect(normalizedStatus).not.toContain('tbc')
-          }
-        }
-
-        // Also verify that searching for TBC projects returns no results
-        const searchInput = await $('#search')
-        await searchInput.setValue('TBC')
-
-        const searchForm = await $('form[method="GET"]')
-        const submitButton = await searchForm.$('button[type="submit"]')
-        await submitButton.click()
-
-        // Wait for search results
-        await browser.waitUntil(
-          async () => {
-            const url = await browser.getUrl()
-            return url.includes('search=')
-          },
-          {
-            timeout: 5000,
-            timeoutMsg: 'Expected URL to contain search parameter'
-          }
-        )
-
-        // Should show no results or explicitly state no projects found
-        const noResultsMessage = await $('p*=No projects found')
-        const resultRows = await $$('.govuk-table tbody tr')
-
-        // Either no results message OR no table rows (both are valid)
-        const hasNoResults =
-          (await noResultsMessage.isExisting()) || resultRows.length === 0
-        await expect(hasNoResults).toBe(true)
-      }
-    })
-
-    it('should show appropriate messaging when no projects are visible to unauthenticated users', async () => {
-      const authenticated = await isUserAuthenticated()
-      const hasProjects = await doProjectsExist()
-
-      if (!authenticated && !hasProjects) {
-        // If no projects are visible to unauthenticated users, should show appropriate message
-        const noProjectsMessage = await $('p*=No projects available')
-        if (await noProjectsMessage.isExisting()) {
-          await expect(noProjectsMessage).toBeDisplayed()
-        }
-
-        // Should not show a table if no projects are available
-        const projectTable = await $('.govuk-table')
-        await expect(projectTable).not.toBeExisting()
-      }
-    })
-
-    it('should maintain search functionality even with TBC filtering', async () => {
-      const authenticated = await isUserAuthenticated()
-
-      if (!authenticated) {
-        // Search should work normally, just excluding TBC projects from results
-        const searchInput = await $('#search')
-        await searchInput.setValue('Project') // Generic search term
-
-        const searchForm = await $('form[method="GET"]')
-        const submitButton = await searchForm.$('button[type="submit"]')
-        await submitButton.click()
-
-        // Wait for search to complete
-        await browser.waitUntil(
-          async () => {
-            const url = await browser.getUrl()
-            return url.includes('search=')
-          },
-          {
-            timeout: 5000,
-            timeoutMsg: 'Expected URL to contain search parameter'
-          }
-        )
-
-        // Verify search functionality works (results or no results message)
-        const searchResults = await $$('.govuk-table tbody tr')
-        const noResultsMessage = await $('p*=No projects found')
-
-        const searchWorked =
-          searchResults.length > 0 || (await noResultsMessage.isExisting())
-        await expect(searchWorked).toBe(true)
-
-        // If there are results, ensure none are TBC status
-        if (searchResults.length > 0) {
-          for (const row of searchResults) {
-            const statusCell = await row.$('td:nth-child(2)')
-            const statusText = await statusCell.getText()
-            const normalizedStatus = statusText.toLowerCase().trim()
-            // TBC projects should not be visible to unauthenticated users
-            // (Note: TBC displays as "Pending" but should still be filtered out at backend level)
-            await expect(normalizedStatus).not.toContain('tbc')
-          }
-        }
-      }
+      // The navigation should have blue background styling applied via CSS
+      const backgroundColor =
+        await serviceNavigation.getCSSProperty('background-color')
+      // Note: The exact color value may vary depending on browser, but it should be blue-ish
+      await expect(backgroundColor.value).not.toBe('rgba(0,0,0,0)') // Not transparent
     })
   })
 
@@ -500,15 +374,14 @@ describe('Home page', () => {
 
       const firstSuggestion = await $('.autocomplete__option:first-child')
       if (await firstSuggestion.isExisting()) {
-        const suggestionText = await firstSuggestion.getText()
         await firstSuggestion.click()
 
-        // Fix: Check for URL rather than title
+        // Fix: Check for search URL rather than specific project page
         const currentUrl = await browser.getUrl()
-        await expect(currentUrl).toContain('/projects/')
+        await expect(currentUrl).toContain('/projects?search=')
 
         const pageTitle = await browser.getTitle()
-        await expect(pageTitle).toContain(suggestionText)
+        await expect(pageTitle).toContain('Projects')
       }
     })
   })

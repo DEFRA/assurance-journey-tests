@@ -1,7 +1,4 @@
-import allure from 'allure-commandline'
-
 const debug = process.env.DEBUG
-const oneMinute = 60 * 1000
 const oneHour = 60 * 60 * 1000
 
 const execArgv = ['--loader', 'esm-module-alias/loader']
@@ -268,7 +265,7 @@ export const config = {
         'browserstack_executor: {"action": "setSessionStatus", "arguments": {"status":"failed","reason": "At least 1 assertion failed"}}'
       )
     }
-  },
+  }
 
   /**
    * Hook that gets executed after the suite has ended
@@ -306,25 +303,7 @@ export const config = {
    * @param {Array.<Object>} capabilities list of capabilities details
    * @param {<Object>} results object containing test results
    */
-  onComplete: function (exitCode, config, capabilities, results) {
-    const reportError = new Error('Could not generate Allure report')
-    const generation = allure(['generate', 'allure-results', '--clean'])
-
-    return new Promise((resolve, reject) => {
-      const generationTimeout = setTimeout(() => reject(reportError), oneMinute)
-
-      generation.on('exit', function (exitCode) {
-        clearTimeout(generationTimeout)
-
-        if (exitCode !== 0) {
-          return reject(reportError)
-        }
-
-        allure(['open'])
-        resolve()
-      })
-    })
-  }
+  // onComplete removed - use 'npm run report' to generate Allure reports with accessibility integration
 
   /**
    * Gets executed when a refresh happens.

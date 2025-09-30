@@ -67,6 +67,7 @@ async function handlePasswordScreen() {
 
   // Wait for password input field and ensure it's interactable
   const passwordInput = await $('input[type="password"]')
+  await passwordInput.waitForDisplayed({ timeout: 15000 })
   await expect(passwordInput).toBeDisplayed()
   await expect(passwordInput).toBeEnabled()
 
@@ -158,6 +159,22 @@ describe('Accessibility Testing', () => {
 
     // Perform login to access authenticated pages
     await performLogin()
+
+    // After login, we're redirected to home page, but we need to navigate to projects
+    // for tests that require project functionality
+    await browser.url('/projects')
+
+    // Wait for projects page to load
+    await browser.waitUntil(
+      async () => {
+        const readyState = await browser.execute(() => document.readyState)
+        return readyState === 'complete'
+      },
+      {
+        timeout: 10000,
+        timeoutMsg: 'Projects page did not load completely after login'
+      }
+    )
   })
 
   it('should test authenticated home page accessibility', async () => {
@@ -176,6 +193,24 @@ describe('Accessibility Testing', () => {
     )
 
     await analyseAccessibility('authenticated-home-page')
+  })
+
+  it('should test authenticated projects page accessibility', async () => {
+    await browser.url('/projects')
+
+    // Wait for page to load
+    await browser.waitUntil(
+      async () => {
+        const readyState = await browser.execute(() => document.readyState)
+        return readyState === 'complete'
+      },
+      {
+        timeout: 10000,
+        timeoutMsg: 'Projects page did not load completely'
+      }
+    )
+
+    await analyseAccessibility('authenticated-projects-page')
   })
 
   it('should test add new project page accessibility', async () => {
@@ -197,7 +232,7 @@ describe('Accessibility Testing', () => {
   })
 
   it('should test project detail page accessibility', async () => {
-    await browser.url('/')
+    await browser.url('/projects')
 
     // Wait for page to load and find a project link
     await browser.waitUntil(
@@ -207,7 +242,7 @@ describe('Accessibility Testing', () => {
       },
       {
         timeout: 10000,
-        timeoutMsg: 'Home page did not load completely'
+        timeoutMsg: 'Projects page did not load completely'
       }
     )
 
@@ -235,7 +270,7 @@ describe('Accessibility Testing', () => {
   })
 
   it('should test project management page accessibility', async () => {
-    await browser.url('/')
+    await browser.url('/projects')
 
     // Wait for page to load and find a project link
     await browser.waitUntil(
@@ -245,7 +280,7 @@ describe('Accessibility Testing', () => {
       },
       {
         timeout: 10000,
-        timeoutMsg: 'Home page did not load completely'
+        timeoutMsg: 'Projects page did not load completely'
       }
     )
 
@@ -291,7 +326,7 @@ describe('Accessibility Testing', () => {
   })
 
   it('should test service standards assessment page accessibility', async () => {
-    await browser.url('/')
+    await browser.url('/projects')
 
     // Wait for page to load and find a project link
     await browser.waitUntil(
@@ -301,7 +336,7 @@ describe('Accessibility Testing', () => {
       },
       {
         timeout: 10000,
-        timeoutMsg: 'Home page did not load completely'
+        timeoutMsg: 'Projects page did not load completely'
       }
     )
 
@@ -334,7 +369,7 @@ describe('Accessibility Testing', () => {
   })
 
   it('should test service standards detail page accessibility', async () => {
-    await browser.url('/')
+    await browser.url('/projects')
 
     // Wait for page to load and find a project link
     await browser.waitUntil(
@@ -344,7 +379,7 @@ describe('Accessibility Testing', () => {
       },
       {
         timeout: 10000,
-        timeoutMsg: 'Home page did not load completely'
+        timeoutMsg: 'Projects page did not load completely'
       }
     )
 
@@ -412,7 +447,7 @@ describe('Accessibility Testing', () => {
   })
 
   it('should test project update archival page accessibility', async () => {
-    await browser.url('/')
+    await browser.url('/projects')
 
     // Wait for page to load and find a project link
     await browser.waitUntil(
@@ -422,7 +457,7 @@ describe('Accessibility Testing', () => {
       },
       {
         timeout: 10000,
-        timeoutMsg: 'Home page did not load completely'
+        timeoutMsg: 'Projects page did not load completely'
       }
     )
 
@@ -561,7 +596,7 @@ describe('Accessibility Testing', () => {
   })
 
   it('should test standard assessment history page accessibility', async () => {
-    await browser.url('/')
+    await browser.url('/projects')
 
     // Wait for page to load and find a project link
     await browser.waitUntil(
@@ -571,7 +606,7 @@ describe('Accessibility Testing', () => {
       },
       {
         timeout: 10000,
-        timeoutMsg: 'Home page did not load completely'
+        timeoutMsg: 'Projects page did not load completely'
       }
     )
 
@@ -644,7 +679,7 @@ describe('Accessibility Testing', () => {
   })
 
   it('should test standard assessment history archival page accessibility', async () => {
-    await browser.url('/')
+    await browser.url('/projects')
 
     // Wait for page to load and find a project link
     await browser.waitUntil(
@@ -654,7 +689,7 @@ describe('Accessibility Testing', () => {
       },
       {
         timeout: 10000,
-        timeoutMsg: 'Home page did not load completely'
+        timeoutMsg: 'Projects page did not load completely'
       }
     )
 

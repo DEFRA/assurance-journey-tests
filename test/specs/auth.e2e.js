@@ -210,6 +210,7 @@ async function handlePasswordScreen() {
 
   // Wait for password input field and ensure it's interactable
   const passwordInput = await $('input[type="password"]')
+  await passwordInput.waitForDisplayed({ timeout: 15000 })
   await expect(passwordInput).toBeDisplayed()
   await expect(passwordInput).toBeEnabled()
 
@@ -362,11 +363,26 @@ describe('Authentication', () => {
       await expect(adminTab).toBeDisplayed()
       await expect(signOutButton).toBeDisplayed()
       await expect(signOutButton).toHaveText('Sign out')
+
+      // Navigate to projects page to access project functionality
+      await browser.url('/projects')
+
+      // Wait for projects page to load
+      await browser.waitUntil(
+        async () => {
+          const readyState = await browser.execute(() => document.readyState)
+          return readyState === 'complete'
+        },
+        {
+          timeout: 10000,
+          timeoutMsg: 'Projects page did not load completely'
+        }
+      )
     })
 
     it('should show TBC projects to authenticated users', async () => {
-      // After login, navigate to home page
-      await browser.url('/')
+      // After login, navigate to projects page
+      await browser.url('/projects')
 
       // Wait for page to load
       await browser.waitUntil(
@@ -462,8 +478,8 @@ describe('Authentication', () => {
 
   describe('Project Management', () => {
     beforeEach(async () => {
-      // Navigate to home page
-      await browser.url('/')
+      // Navigate to projects page
+      await browser.url('/projects')
 
       // Wait for the page to be fully loaded
       await browser.waitUntil(
@@ -526,20 +542,21 @@ describe('Authentication', () => {
       await expect(submitButton).toBeDisplayed()
       await submitButton.click()
 
-      // Wait for redirect to home page
+      // Wait for redirect to projects page
       await browser.waitUntil(
         async () => {
-          // Check if we're on the home page by looking for the projects heading
+          // Check if we're on the projects page by looking for the projects heading
           const heading = await $('h1.govuk-heading-xl')
-          return (
-            (await heading.isDisplayed()) &&
-            (await heading.getText()) === 'Projects'
-          )
+          if (await heading.isDisplayed()) {
+            const headingText = await heading.getText()
+            return headingText === 'Projects'
+          }
+          return false
         },
         {
           timeout: 10000,
           timeoutMsg:
-            'Expected to be redirected to home page with projects heading'
+            'Expected to be redirected to projects page with projects heading'
         }
       )
 
@@ -809,8 +826,8 @@ describe('Authentication', () => {
     const testProjects = []
 
     beforeEach(async () => {
-      // Navigate to home page
-      await browser.url('/')
+      // Navigate to projects page
+      await browser.url('/projects')
 
       // Wait for the page to be fully loaded
       await browser.waitUntil(
@@ -895,18 +912,19 @@ describe('Authentication', () => {
         await expect(submitButton).toBeDisplayed()
         await submitButton.click()
 
-        // Wait for redirect to home page
+        // Wait for redirect to projects page
         await browser.waitUntil(
           async () => {
             const heading = await $('h1.govuk-heading-xl')
-            return (
-              (await heading.isDisplayed()) &&
-              (await heading.getText()) === 'Projects'
-            )
+            if (await heading.isDisplayed()) {
+              const headingText = await heading.getText()
+              return headingText === 'Projects'
+            }
+            return false
           },
           {
             timeout: 10000,
-            timeoutMsg: 'Expected to be redirected to home page'
+            timeoutMsg: 'Expected to be redirected to projects page'
           }
         )
 
@@ -1291,8 +1309,8 @@ describe('Authentication', () => {
           // No compliance tab found on project page
         }
 
-        // Navigate back to home for next project
-        await browser.url('/')
+        // Navigate back to projects page for next project
+        await browser.url('/projects')
       }
 
       // Verify assessments were created by checking project pages

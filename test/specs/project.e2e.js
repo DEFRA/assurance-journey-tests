@@ -39,8 +39,8 @@ describe('Project detail page', () => {
   let projectId
 
   before(async () => {
-    // Go to home page first to get a project ID from the list
-    await browser.url('/')
+    // Go to projects page first to get a project ID from the list
+    await browser.url('/projects')
 
     // Get the first project link and extract the project ID from its href
     const firstProjectLink = await $(
