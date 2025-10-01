@@ -66,7 +66,7 @@ describe('Home page', () => {
   })
 
   it('should display RAG Status Definitions section', async () => {
-    const ragStatusHeading = await $('h3*=RAG Status Definitions')
+    const ragStatusHeading = await $('h3*=RAG status definitions')
     await expect(ragStatusHeading).toBeDisplayed()
 
     // Check for specific RAG status definitions
