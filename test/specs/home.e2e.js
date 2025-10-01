@@ -49,8 +49,8 @@ describe('Home page', () => {
     await expect(heading).toHaveText('Defra Digital Assurance')
   })
 
-  it('should display "Team Objectives" and "How we assure" sections', async () => {
-    const teamObjectivesHeading = await $('h2*=Team Objectives')
+  it('should display "Team objectives" and "How we assure" sections', async () => {
+    const teamObjectivesHeading = await $('h2*=Team objectives')
     await expect(teamObjectivesHeading).toBeDisplayed()
 
     const howWeAssureHeading = await $('h2*=How we assure')
