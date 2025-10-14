@@ -380,7 +380,7 @@ describe('Authentication', () => {
       )
     })
 
-    it('should show TBC projects to authenticated users', async () => {
+    it('should show TBC deliveries to authenticated users', async () => {
       // After login, navigate to projects page
       await browser.url('/projects')
 
@@ -396,7 +396,7 @@ describe('Authentication', () => {
         }
       )
 
-      // Verify we can see the "Add new project" link (confirms we're authenticated)
+      // Verify we can see the "Add new delivery" link (confirms we're authenticated)
       const addLink = await $('a.govuk-link[href="/projects/add"]')
       await expect(addLink).toBeDisplayed()
 
@@ -404,8 +404,8 @@ describe('Authentication', () => {
       const projectRows = await $$('.govuk-table tbody tr')
 
       if (projectRows.length > 0) {
-        // Look for TBC projects in the list - authenticated users should be able to see them
-        // Note: TBC projects now display as "Pending" in the UI
+        // Look for TBC deliveries in the list - authenticated users should be able to see them
+        // Note: TBC deliveries now display as "Pending" in the UI
         let foundTBCProject = false
 
         for (const row of projectRows) {
@@ -413,16 +413,16 @@ describe('Authentication', () => {
           const statusText = await statusCell.getText()
           const normalizedStatus = statusText.toLowerCase().trim()
 
-          // TBC projects now display as "Pending" in the UI
+          // TBC deliveries now display as "Pending" in the UI
           if (normalizedStatus.includes('pending')) {
             foundTBCProject = true
             break
           }
         }
 
-        // If we found TBC projects (displayed as Pending), verify they're properly displayed
+        // If we found TBC deliveries (displayed as Pending), verify they're properly displayed
         if (foundTBCProject) {
-          // TBC projects should be visible and accessible to authenticated users
+          // TBC deliveries should be visible and accessible to authenticated users
           const tbcRows = await $$('.govuk-table tbody tr').filter(
             async (row) => {
               const statusCell = await row.$('td:nth-child(2)')
@@ -442,7 +442,7 @@ describe('Authentication', () => {
         }
       }
 
-      // Also test search functionality includes TBC projects for authenticated users
+      // Also test search functionality includes TBC deliveries for authenticated users
       const searchInput = await $('#search')
       await searchInput.setValue('PENDING')
 
@@ -463,11 +463,11 @@ describe('Authentication', () => {
       )
 
       // For authenticated users, TBC search should either:
-      // 1. Return TBC projects (which display as "Pending") if they exist
-      // 2. Return "No projects found" if no TBC projects exist
+      // 1. Return TBC deliveries (which display as "Pending") if they exist
+      // 2. Return "No deliveries found" if no TBC deliveries exist
       // But it should NOT be blocked or filtered out
       const searchResults = await $$('.govuk-table tbody tr')
-      const noResultsMessage = await $('p*=No projects found')
+      const noResultsMessage = await $('p*=No deliveries found')
 
       // Verify search completed (either results or no results message)
       const searchCompleted =
@@ -494,8 +494,8 @@ describe('Authentication', () => {
       )
     })
 
-    it('should create a new project and update its details', async () => {
-      // Click "Add new project" link
+    it('should create a new delivery and update its details', async () => {
+      // Click "Add new delivery" link
       const addLink = await $('a.govuk-link[href="/projects/add"]')
       await expect(addLink).toBeDisplayed()
       await addLink.click()
@@ -545,18 +545,18 @@ describe('Authentication', () => {
       // Wait for redirect to projects page
       await browser.waitUntil(
         async () => {
-          // Check if we're on the projects page by looking for the projects heading
+          // Check if we're on the deliveries page by looking for the deliveries heading
           const heading = await $('h1.govuk-heading-xl')
           if (await heading.isDisplayed()) {
             const headingText = await heading.getText()
-            return headingText === 'Projects'
+            return headingText === 'Deliveries'
           }
           return false
         },
         {
           timeout: 10000,
           timeoutMsg:
-            'Expected to be redirected to projects page with projects heading'
+            'Expected to be redirected to deliveries page with deliveries heading'
         }
       )
 
@@ -842,9 +842,9 @@ describe('Authentication', () => {
       )
     })
 
-    it('should create projects at different phases and add service standard assessments', async () => {
+    it('should create deliveries at different phases and add service standard assessments', async () => {
       const projectPhases = [
-        { phase: 'Discovery', index: 1, status: 'PENDING' }, // Create a TBC project to test filtering (displays as "Pending")
+        { phase: 'Discovery', index: 1, status: 'PENDING' }, // Create a TBC delivery to test filtering (displays as "Pending")
         { phase: 'Alpha', index: 2, status: 'GREEN' },
         { phase: 'Beta', index: 3, status: 'AMBER' },
         { phase: 'Live', index: 4, status: 'RED' }
@@ -918,13 +918,13 @@ describe('Authentication', () => {
             const heading = await $('h1.govuk-heading-xl')
             if (await heading.isDisplayed()) {
               const headingText = await heading.getText()
-              return headingText === 'Projects'
+              return headingText === 'Deliveries'
             }
             return false
           },
           {
             timeout: 10000,
-            timeoutMsg: 'Expected to be redirected to projects page'
+            timeoutMsg: 'Expected to be redirected to deliveries page'
           }
         )
 

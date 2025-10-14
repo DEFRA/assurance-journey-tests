@@ -130,14 +130,14 @@ describe('Home page', () => {
       await expect(currentUrl).toContain('search=')
     })
 
-    it('should display a "View all projects" link', async () => {
-      // The home page should have a "View all projects" link
+    it('should display a "View all deliveries" link', async () => {
+      // The home page should have a "View all deliveries" link
       const viewAllProjectsLink = await $('a.govuk-link[href="/projects"]')
       await expect(viewAllProjectsLink).toBeDisplayed()
-      await expect(viewAllProjectsLink).toHaveText('View all projects')
+      await expect(viewAllProjectsLink).toHaveText('View all deliveries')
     })
 
-    it('should navigate to projects page when "View all projects" is clicked', async () => {
+    it('should navigate to deliveries page when "View all deliveries" is clicked', async () => {
       const viewAllProjectsLink = await $('a.govuk-link[href="/projects"]')
       await viewAllProjectsLink.click()
 
@@ -244,8 +244,8 @@ describe('Home page', () => {
   })
 
   describe('Sidebar functionality', () => {
-    it('should display "Projects by Delivery Group" section in sidebar', async () => {
-      const deliveryGroupsSection = await $('dt*=Projects by Delivery Group')
+    it('should display "Deliveries by Delivery Group" section in sidebar', async () => {
+      const deliveryGroupsSection = await $('dt*=Deliveries by Delivery Group')
       await expect(deliveryGroupsSection).toBeDisplayed()
 
       // Check if there are delivery group links or a "no delivery groups" message
@@ -261,9 +261,9 @@ describe('Home page', () => {
       await expect(hasDeliveryGroups || hasNoGroupsMessage).toBe(true)
     })
 
-    it('should display "Projects by Delivery Partner" section in sidebar', async () => {
+    it('should display "Deliveries by Delivery Partner" section in sidebar', async () => {
       const deliveryPartnersSection = await $(
-        'dt*=Projects by Delivery Partner'
+        'dt*=Deliveries by Delivery Partner'
       )
       await expect(deliveryPartnersSection).toBeDisplayed()
 
@@ -330,8 +330,8 @@ describe('Home page', () => {
   })
 
   describe('Navigation', () => {
-    it('should NOT display "Add new project" link on home page', async () => {
-      // The "Add new project" link should only be on the projects page, not the home page
+    it('should NOT display "Add new delivery" link on home page', async () => {
+      // The "Add new delivery" link should only be on the deliveries page, not the home page
       const addLink = await $('a.govuk-link[href="/projects/add"]')
       await expect(addLink).not.toBeExisting()
     })
@@ -381,7 +381,7 @@ describe('Home page', () => {
         await expect(currentUrl).toContain('/projects?search=')
 
         const pageTitle = await browser.getTitle()
-        await expect(pageTitle).toContain('Projects')
+        await expect(pageTitle).toContain('Deliveries')
       }
     })
   })

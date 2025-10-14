@@ -58,13 +58,13 @@ describe('Projects page', () => {
   it('should have the correct page title', async () => {
     // Using the correct WebdriverIO assertion pattern
     const title = await browser.getTitle()
-    await expect(title).toBe('Projects | Defra Digital Assurance')
+    await expect(title).toBe('Deliveries | Defra Digital Assurance')
   })
 
-  it('should display the main heading "Projects"', async () => {
+  it('should display the main heading "Deliveries"', async () => {
     const heading = await $('h1.govuk-heading-xl') // Assuming appHeading macro renders an H1 with this class
     await expect(heading).toBeDisplayed()
-    await expect(heading).toHaveText('Projects')
+    await expect(heading).toHaveText('Deliveries')
   })
 
   describe('Search functionality', () => {
@@ -229,11 +229,11 @@ describe('Projects page', () => {
         const projectTableHeadings = await projectTable.$$('thead th')
 
         await expect(projectTable).toBeDisplayed()
-        await expect(projectTableHeadings[0]).toHaveText('Project name')
+        await expect(projectTableHeadings[0]).toHaveText('Delivery name')
         await expect(projectTableHeadings[1]).toHaveText('RAG status')
       } else {
-        // If no projects exist, we should see a message instead of a table
-        const noProjectsMessage = await $('p*=No projects found')
+        // If no deliveries exist, we should see a message instead of a table
+        const noProjectsMessage = await $('p*=No deliveries found')
         if (await noProjectsMessage.isExisting()) {
           await expect(noProjectsMessage).toBeDisplayed()
         }

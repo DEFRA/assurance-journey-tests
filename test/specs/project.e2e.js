@@ -187,8 +187,8 @@ describe('Project detail page', () => {
     }
   })
 
-  it('should display project engagement content when tab is clicked', async () => {
-    // Click on the Project engagement tab
+  it('should display delivery engagement content when tab is clicked', async () => {
+    // Click on the Delivery engagement tab
     const engagementTab = await $('a[href="#engagement"]')
     await engagementTab.click()
 
@@ -199,7 +199,7 @@ describe('Project detail page', () => {
     // Check the heading
     const engagementHeading = await $('#engagement h2')
     const headingText = await engagementHeading.getText()
-    await expect(headingText).toBe('Project engagement')
+    await expect(headingText).toBe('Delivery engagement')
 
     // This test is conditional - we may or may not have timeline events
     const timelineEvents = await $$('.timeline__event')
