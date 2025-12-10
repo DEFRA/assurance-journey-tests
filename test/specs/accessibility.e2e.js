@@ -446,6 +446,24 @@ describe('Accessibility Testing', () => {
     await analyseAccessibility('architecture-profession-page')
   })
 
+  it('should test insights prioritisation page accessibility', async () => {
+    await browser.url('/insights/prioritisation')
+
+    // Wait for page to load
+    await browser.waitUntil(
+      async () => {
+        const readyState = await browser.execute(() => document.readyState)
+        return readyState === 'complete'
+      },
+      {
+        timeout: 10000,
+        timeoutMsg: 'Insights prioritisation page did not load completely'
+      }
+    )
+
+    await analyseAccessibility('insights-prioritisation-page')
+  })
+
   it('should test project update archival page accessibility', async () => {
     await browser.url('/projects')
 
