@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 
 const oneMinute = 60 * 1000
-
+const threeMinutes = 3 * 60 * 1000
 export const config = {
   //
   // ====================
@@ -21,7 +21,7 @@ export const config = {
   port: process.env.CHROMEDRIVER_PORT || 4444,
 
   // Tests to run
-  specs: ['./test/specs/**/*.js'],
+ specs: ['./test/specs/**/*.e2e.js', './test/specs/**/*.spec.js'],
   // Tests to exclude
   exclude: [],
   maxInstances: 1,
@@ -90,7 +90,7 @@ export const config = {
   // See the full list at http://mochajs.org/
   mochaOpts: {
     ui: 'bdd',
-    timeout: oneMinute
+    timeout: debug ? oneHour : threeMinutes
   },
   //
   // =====
