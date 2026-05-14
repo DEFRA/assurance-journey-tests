@@ -1,4 +1,4 @@
-import * as wcagChecker from '../dist/wcagchecker.js'
+import { init, analyse, getHtmlReportByCategory, getHtmlReportByGuideLine, getHtmlPerformanceMetrics } from 'wcag-js-v2';
 import fs from 'fs'
 import path from 'path'
 
@@ -9,18 +9,18 @@ export async function initialiseAccessibilityChecking() {
     fs.mkdirSync(reportDirectory)
   }
 
-  await wcagChecker.init(browser)
+  await init(browser)
 }
 
 export async function analyseAccessibility(suffix) {
-  await wcagChecker.analyse(browser, suffix)
+  await analyse(browser, suffix)
 }
 
 export function generateAccessibilityReports(filePrefix) {
-  const categoryReport = wcagChecker.getHtmlReportByCategory()
-  const guidelineReport = wcagChecker.getHtmlReportByGuideLine()
+  const categoryReport = getHtmlReportByCategory()
+  const guidelineReport = getHtmlReportByGuideLine()
 
-  if (categoryReport && categoryReport.length > 0) {
+ if (categoryReport && categoryReport.length > 0) {
     fs.writeFileSync(
       path.join(reportDirectory, `${filePrefix}-accessibility-category.html`),
       categoryReport,
@@ -29,11 +29,20 @@ export function generateAccessibilityReports(filePrefix) {
       }
     )
   }
-
+ 
   if (guidelineReport && guidelineReport.length > 0) {
     fs.writeFileSync(
       path.join(reportDirectory, `${filePrefix}-accessibility-guideline.html`),
       guidelineReport,
+      (err) => {
+        if (err) throw err
+      }
+    )
+  }
+   if (performanceMetrics && performanceMetrics.length > 0) {
+    fs.writeFileSync(
+      path.join(reportDirectory, `${filePrefix}-performance-metrics.html`),
+      performanceMetrics,
       (err) => {
         if (err) throw err
       }
