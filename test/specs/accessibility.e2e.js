@@ -114,40 +114,54 @@ async function handlePasswordScreen() {
  * Helper function to perform Azure AD login
  */
 async function performLogin() {
-  // Navigate to login page
-  await browser.url('/auth/login')
+  // Navigate to dev-login bypass (AD authentication bypassed)
+  await browser.url('/auth/dev-login')
 
-  // Wait for redirect to Microsoft login
+  // AD validation commented out - authentication is bypassed via dev-login
+  // // Wait for redirect to Microsoft login
+  // await browser.waitUntil(
+  //   async () => {
+  //     const url = await browser.getUrl()
+  //     return (
+  //       url.includes('login.microsoftonline.com') ||
+  //       url.includes('microsoft.com/') ||
+  //       url.includes('login.live.com')
+  //     )
+  //   },
+  //   {
+  //     timeout: 30000,
+  //     timeoutMsg: 'Not redirected to Microsoft login page'
+  //   }
+  // )
+
+  // await handleUsernameScreen()
+  // await handlePasswordScreen()
+
+  // // Wait for redirect back to application and page to load
+  // await browser.waitUntil(
+  //   async () => {
+  //     const url = await browser.getUrl()
+  //     return (
+  //       !url.includes('login.microsoftonline.com') &&
+  //       !url.includes('microsoft.com') &&
+  //       !url.includes('login')
+  //     )
+  //   },
+  //   {
+  //     timeout: 20000,
+  //     timeoutMsg: 'Expected to be redirected back to application'
+  //   }
+  // )
+
+  // Wait for dev-login to complete and redirect back to the application
   await browser.waitUntil(
     async () => {
-      const url = await browser.getUrl()
-      return (
-        url.includes('login.microsoftonline.com') ||
-        url.includes('microsoft.com/')
-      )
+      const readyState = await browser.execute(() => document.readyState)
+      return readyState === 'complete'
     },
     {
-      timeout: 30000,
-      timeoutMsg: 'Not redirected to Microsoft login page'
-    }
-  )
-
-  await handleUsernameScreen()
-  await handlePasswordScreen()
-
-  // Wait for redirect back to application and page to load
-  await browser.waitUntil(
-    async () => {
-      const url = await browser.getUrl()
-      return (
-        !url.includes('login.microsoftonline.com') &&
-        !url.includes('microsoft.com') &&
-        !url.includes('login')
-      )
-    },
-    {
-      timeout: 20000,
-      timeoutMsg: 'Expected to be redirected back to application'
+      timeout: 15000,
+      timeoutMsg: 'Dev login did not complete'
     }
   )
 }

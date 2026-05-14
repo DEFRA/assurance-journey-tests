@@ -35,7 +35,7 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
       await signInAndNavigateToProjects()
     })
 
-     // ════════════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════════════
     // Step 1: Save an assessment for every standard in this profession
     // ════════════════════════════════════════════════════════════════════════
     it(`should update all ${scenario.standards.length} standards for ${scenario.professionLabel}`, async () => {

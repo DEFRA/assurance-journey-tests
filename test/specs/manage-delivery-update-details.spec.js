@@ -35,7 +35,7 @@ describe('Manage Delivery - Update Details', () => {
   let projectId = ''
   let originalDetails = null
 
-    before(async () => {
+  before(async () => {
     // Navigate like a real user: Home → Sign in → View all deliveries
     await signInAndNavigateToProjects()
   })
