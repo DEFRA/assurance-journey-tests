@@ -53,14 +53,20 @@ class AssessmentPage {
    * @param {string} projectName
    */
   async openProject (projectName) {
-    await browser.url('/projects')
+    // Navigate to /projects if not already there
+    const currentUrl = await browser.getUrl()
+    if (!currentUrl.includes('/projects') || currentUrl.includes('/projects/')) {
+      await browser.url('/projects')
+    }
     await browser.waitUntil(
       async () => (await browser.getUrl()).includes('/projects'),
       { timeout: 10000, timeoutMsg: 'Projects list page did not load' }
     )
 
-    // Wait for the autocomplete search input to be present
+    // Wait for the autocomplete search input to be present (dynamically rendered by JS)
     const searchInput = await $('#search')
+    await searchInput.waitForExist({ timeout: 15000 })
+    await browser.pause(500) // allow autocomplete JS to fully initialise
     await searchInput.waitForDisplayed({ timeout: 10000 })
 
     // Type the project name character by character to trigger input events

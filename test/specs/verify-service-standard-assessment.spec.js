@@ -33,7 +33,7 @@ import {
   SERVICE_STANDARD_TEXT,
   buildInsetText
 } from '../data/service-standard-assessment.data.js'
-import { waitForPageLoad } from '../helpers/delivery.helper.js'
+import { waitForPageLoad, signInAndNavigateToProjects } from '../helpers/delivery.helper.js'
 
 // ── Pure helpers (extracted to keep verifyProfessionsAndStandards ≤15 CC) ──
 
@@ -145,8 +145,7 @@ for (const project of ASSESSMENT_PROJECTS) {
     // Re-authenticate before every it() so a crashed session in one test
     // does not cascade to the next.
     beforeEach(async () => {
-      await browser.url('/auth/login')
-      await waitForPageLoad(15000)
+      await signInAndNavigateToProjects()
     })
 
     // ════════════════════════════════════════════════════════════════════════

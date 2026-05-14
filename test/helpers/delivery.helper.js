@@ -7,6 +7,39 @@ import { SERVICE_STANDARDS } from '../data/delivery.data.js'
 import DeliveryPage from '../page-objects/delivery.page.js'
 
 /**
+ * Navigate like a real user: Home → Sign in → View all deliveries → /projects.
+ * Uses the GOV.UK service navigation "Sign in" link and the "View all deliveries" link.
+ */
+export async function signInAndNavigateToProjects () {
+  // 1. Go to the home page
+  await browser.url('/')
+  await waitForPageLoad(15000)
+
+  // 2. Sign in only if not already authenticated
+  const signOutLink = await $('a=Sign out')
+  const alreadySignedIn = await signOutLink.isExisting()
+
+  if (!alreadySignedIn) {
+    const signInLink = await $('a=Sign in')
+    await signInLink.waitForClickable({ timeout: 10000 })
+    await signInLink.click()
+    await waitForPageLoad(15000)
+  }
+
+  // 3. Click "View all deliveries" link on the home page
+  const viewDeliveriesLink = await $('a=View all deliveries')
+  await viewDeliveriesLink.waitForClickable({ timeout: 10000 })
+  await viewDeliveriesLink.click()
+
+  // 4. Wait for URL to contain /projects
+  await browser.waitUntil(
+    async () => (await browser.getUrl()).includes('/projects'),
+    { timeout: 15000, timeoutMsg: 'URL did not navigate to /projects' }
+  )
+  await waitForPageLoad()
+}
+
+/**
  * Verify the Service Standard compliance table headers and all 15 standard rows.
  * @param {string} [expectedConfidence='Pending'] - expected compliance confidence text for every row
  */

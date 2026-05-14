@@ -22,7 +22,7 @@ import {
   buildCommentary
 } from '../data/update-standards.data.js'
 import { SERVICE_STANDARDS } from '../data/delivery.data.js'
-import { waitForPageLoad } from '../helpers/delivery.helper.js'
+import { waitForPageLoad, signInAndNavigateToProjects } from '../helpers/delivery.helper.js'
 
 // ── Parameterised describe – one per profession ──────────────────────────────
 for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
@@ -32,11 +32,10 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
     const assignedStatuses = {}
 
     beforeEach(async () => {
-      await browser.url('/auth/login')
-      await waitForPageLoad(15000)
+      await signInAndNavigateToProjects()
     })
 
-    // ════════════════════════════════════════════════════════════════════════
+     // ════════════════════════════════════════════════════════════════════════
     // Step 1: Save an assessment for every standard in this profession
     // ════════════════════════════════════════════════════════════════════════
     it(`should update all ${scenario.standards.length} standards for ${scenario.professionLabel}`, async () => {
@@ -47,10 +46,12 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
 
         console.log(` Standard ${stdNum} → ${status.label}: ${commentary}`)
 
-        // Navigate: project → compliance tab → standard 1 → "Add service standard update"
-        // (we always enter via standard 1 so the assessment page loads with all dropdowns)
-        await AssessmentPage.openProject(scenario.projectName)
-        await waitForPageLoad()
+        if (i === 0) {
+          // First iteration: navigate to the project via search
+          await AssessmentPage.openProject(scenario.projectName)
+          await waitForPageLoad()
+        }
+        // After save, browser is already on the project detail page
 
         await AssessmentPage.clickAddServiceStandardUpdate()
         await waitForPageLoad()
@@ -174,8 +175,7 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
     const assignedStatuses = {}
 
     beforeEach(async () => {
-      await browser.url('/auth/login')
-      await waitForPageLoad(15000)
+      await signInAndNavigateToProjects()
     })
 
     // ════════════════════════════════════════════════════════════════════════
