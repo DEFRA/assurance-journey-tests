@@ -48,56 +48,56 @@ export function buildCommentary (professionLabel, standardNumber, statusLabel) {
 
 export const PROFESSION_UPDATE_SCENARIOS = [
   {
-    projectName: 'Project_Architecture',
+    projectName: 'Auto_Proj_Dscvry_Arch',
     projectPhase: 'Discovery',
     professionId: 'architecture',
     professionLabel: 'Architecture',
     standards: [6, 7, 11, 12, 13, 14]
   },
   {
-    projectName: 'Project_Business_Analysis',
-    projectPhase: 'Discovery',
+    projectName: 'Auto_Proj_Alpha_BA',
+    projectPhase: 'Alpha',
     professionId: 'business-analysis',
     professionLabel: 'Business Analysis',
     standards: [6, 7]
   },
   {
-    projectName: 'Project_Delivery_Management',
-    projectPhase: 'Discovery',
+    projectName: 'Auto_Proj_Private_Beta_DM',
+    projectPhase: 'Private Beta',
     professionId: 'delivery-management',
     professionLabel: 'Delivery Management',
     standards: [4, 5, 6, 7, 8]
   },
   {
-    projectName: 'Project_Product_Management',
-    projectPhase: 'Discovery',
+    projectName: 'Auto_Proj_Live_PM',
+    projectPhase: 'Live',
     professionId: 'product-management',
     professionLabel: 'Product Management',
     standards: [2, 6, 7, 10]
   },
   {
-    projectName: 'Project_Quality_Assurance',
-    projectPhase: 'Discovery',
+    projectName: 'Auto_Proj_Public_Beta_QA',
+    projectPhase: 'Public Beta',
     professionId: 'quality-assurance',
     professionLabel: 'Quality Assurance',
     standards: [6, 7, 14]
   },
   {
-    projectName: 'Project_Release_Management',
+    projectName: 'Auto_Proj_Dscvry_RM',
     projectPhase: 'Discovery',
     professionId: 'release-management',
     professionLabel: 'Release Management',
     standards: [7]
   },
   {
-    projectName: 'Project_Software Development',
+    projectName: 'Auto_Proj_Dscvry_Soft_Dev',
     projectPhase: 'Discovery',
     professionId: 'software-development',
     professionLabel: 'Software Development',
     standards: [6, 7, 9, 11, 12, 13, 14]
   },
   {
-    projectName: 'Project_User Centred Design',
+    projectName: 'Auto_Proj_Dscvry_UCD',
     projectPhase: 'Discovery',
     professionId: 'user-centred-design',
     professionLabel: 'User Centred Design',

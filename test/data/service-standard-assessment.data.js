@@ -110,11 +110,11 @@ export const PHASE_PROFESSION_STANDARD_MAP = {
 // ── Test projects (must exist in DB) ─────────────────────────────────────────
 // One project per phase; update names to match your actual test DB records.
 export const ASSESSMENT_PROJECTS = [
-  { name: 'Project_Discovery',   phase: 'Discovery' },
-  { name: 'Project_Alpha',       phase: 'Alpha' },
-  { name: 'Project_Private_Beta', phase: 'Private Beta' },
-  { name: 'Project_Public_Beta', phase: 'Public Beta' },
-  { name: 'Project_Live',        phase: 'Live' }
+  { name: 'Auto_Proj_Dscvry_Arch',   phase: 'Discovery' },
+  { name: 'Auto_Proj_Alpha_BA',       phase: 'Alpha' },
+  { name: 'Auto_Proj_Private_Beta_DM', phase: 'Private Beta' },
+  { name: 'Auto_Proj_Public_Beta_QA', phase: 'Public Beta' },
+  { name: 'Auto_Proj_Live_PM',        phase: 'Live' }
 ]
 
 /**

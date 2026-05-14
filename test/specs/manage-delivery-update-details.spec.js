@@ -20,7 +20,7 @@ import {
   MANAGE_DELIVERY_TEST_PROJECT2,
   generateDetailsUpdateScenarios
 } from '../data/delivery.data.js'
-import { waitForPageLoad } from '../helpers/delivery.helper.js'
+import { waitForPageLoad, signInAndNavigateToProjects } from '../helpers/delivery.helper.js'
 import {
   verifyDetailsUpdatePage,
   verifyDetailsUpdateInEngagementTab,
@@ -35,10 +35,9 @@ describe('Manage Delivery - Update Details', () => {
   let projectId = ''
   let originalDetails = null
 
-  before(async () => {
-    // Use dev-login bypass for authentication
-    await browser.url('/auth/login')
-    await waitForPageLoad(15000)
+    before(async () => {
+    // Navigate like a real user: Home → Sign in → View all deliveries
+    await signInAndNavigateToProjects()
   })
 
   describe('Navigate to project and capture existing state', () => {

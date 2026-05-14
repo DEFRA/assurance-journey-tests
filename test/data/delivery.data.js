@@ -100,19 +100,16 @@ export const DELIVERY_STATUSES = [
  * Test project name for Manage Delivery Update Status scenarios.
  * This project must already exist in the test database.
  */
-export const MANAGE_DELIVERY_TEST_PROJECT1 = 'CP_Test Project'
-export const MANAGE_DELIVERY_TEST_PROJECT2 = 'Test Project'
-/**
- * Expected details for the test project CP_Test Project.
- * Used to verify sidebar information on the delivery detail page.
- */
+export const MANAGE_DELIVERY_TEST_PROJECT1 = 'Auto_Test_Proj_1'
+export const MANAGE_DELIVERY_TEST_PROJECT2 = 'Auto_Test_Proj_2'
+
 export const MANAGE_DELIVERY_TEST_PROJECT_DETAILS1 = {
-  deliveryId: 'CPTP01DEFCO0031',          // Expected Delivery ID (defCode)
+  deliveryId: 'CPTP01DEFC0031',          // Expected Delivery ID (defCode)
   phase: 'Discovery',                 // Expected Phase
   deliveryGroup: 'Animal Health' // Expected Delivery group name
 }
 export const MANAGE_DELIVERY_TEST_PROJECT_DETAILS2 = {
-  deliveryId: 'CPTP02DEFCO0031',          // Expected Delivery ID (defCode)
+  deliveryId: 'CPTP01DEFC0031',          // Expected Delivery ID (defCode)
   phase: 'Alpha',                 // Expected Phase
   deliveryGroup: 'Some good group' // Expected Delivery group name
 }

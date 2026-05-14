@@ -24,7 +24,7 @@ import {
   MANAGE_DELIVERY_TEST_PROJECT_DETAILS1,
   formatTimestamp
 } from '../data/delivery.data.js'
-import { waitForPageLoad } from '../helpers/delivery.helper.js'
+import { waitForPageLoad, signInAndNavigateToProjects } from '../helpers/delivery.helper.js'
 import {
   verifyManageDeliverySelectionPage,
   verifyStatusUpdatePage,
@@ -41,9 +41,8 @@ describe('Manage Delivery - Update Status and Commentary', () => {
   let standardsRequiringAttention = []
 
   before(async () => {
-    // Use dev-login bypass for authentication
-    await browser.url('/auth/login')
-    await waitForPageLoad(15000)
+    // Navigate like a real user: Home → Sign in → View all deliveries
+    await signInAndNavigateToProjects()
   })
 
   describe('Navigate to project and capture existing state', () => {
@@ -208,7 +207,7 @@ describe('Manage Delivery - Update Status and Commentary', () => {
           async () => (await browser.getUrl()).includes('/manage/status'),
           { timeout: 10000, timeoutMsg: 'URL did not contain /manage/status' }
         )
-        await verifyStatusUpdatePage(MANAGE_DELIVERY_TEST_PROJECT, true)
+        await verifyStatusUpdatePage(MANAGE_DELIVERY_TEST_PROJECT1, true)
 
         // Capture existing status and skip if same as target
         existingStatus = await ManageDeliveryPage.getCurrentStatusValue()
