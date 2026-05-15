@@ -26,22 +26,72 @@ import { waitForPageLoad, signInAndNavigateToProjects } from '../helpers/deliver
 
 /**
  * Helper: Take a screenshot with a descriptive name for debugging
+ * Also captures URL, title, HTML source, and browser state information
  * @param {string} stepName - Description of the step
  */
 async function takeDebugScreenshot (stepName) {
   try {
+    // Capture browser state information
+    const url = await browser.getUrl()
+    const title = await browser.getTitle()
+    const windowSize = await browser.getWindowSize()
+    
+    // Get page source to help debug blank screenshots
+    let pageSource = ''
+    try {
+      pageSource = await browser.getPageSource()
+    } catch (e) {
+      pageSource = `Failed to get page source: ${e.message}`
+    }
+    
+    // Take screenshot
     const screenshot = await browser.takeScreenshot()
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19)
     const name = `${stepName.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}`
     
-    // Attach to Allure report using addAttachment
-    if (global.allure) {
-      await global.allure.addAttachment(name, Buffer.from(screenshot, 'base64'), 'image/png')
+    // Create detailed context information
+    const contextInfo = {
+      step: stepName,
+      timestamp: new Date().toISOString(),
+      url: url,
+      title: title,
+      windowSize: `${windowSize.width}x${windowSize.height}`,
+      pageSourceLength: pageSource.length,
+      pageSourcePreview: pageSource.substring(0, 500) // First 500 chars
     }
     
+    // Log to console with full details
     console.log(`  📸 Screenshot: ${stepName}`)
+    console.log(`     URL: ${url}`)
+    console.log(`     Title: ${title}`)
+    console.log(`     Window: ${windowSize.width}x${windowSize.height}`)
+    console.log(`     Page Source Length: ${pageSource.length} chars`)
+    
+    // Attach screenshot to Allure report
+    if (global.allure) {
+      await global.allure.addAttachment(name, Buffer.from(screenshot, 'base64'), 'image/png')
+      
+      // Also attach context info as JSON
+      await global.allure.addAttachment(
+        `${name}_context`,
+        JSON.stringify(contextInfo, null, 2),
+        'application/json'
+      )
+      
+      // Attach HTML source for debugging blank pages
+      await global.allure.addAttachment(
+        `${name}_source`,
+        pageSource,
+        'text/html'
+      )
+    }
+    
+    // Add a small pause to ensure page is stable (helps with blank screenshots)
+    await browser.pause(500)
+    
   } catch (err) {
     console.log(`  ⚠️ Screenshot failed for "${stepName}": ${err.message}`)
+    console.log(`     Stack: ${err.stack}`)
   }
 }
 
@@ -53,9 +103,51 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
     const assignedStatuses = {}
 
     beforeEach(async () => {
-      await takeDebugScreenshot('Before - Start')
-      await signInAndNavigateToProjects()
-      await takeDebugScreenshot('Before - After sign in and navigate to projects')
+      console.log('⏳ Starting beforeEach hook...')
+      
+      // Take screenshot before anything starts
+      await takeDebugScreenshot('Before - Initial state')
+      
+      // Navigate to home page
+      console.log('  → Navigating to home page')
+      await browser.url('/')
+      await takeDebugScreenshot('Before - After URL launch (home page)')
+      await waitForPageLoad(15000)
+      await takeDebugScreenshot('Before - After home page loaded')
+      
+      // Check if already signed in
+      const signOutLink = await $('a=Sign out')
+      const alreadySignedIn = await signOutLink.isExisting()
+      console.log(`  → Already signed in: ${alreadySignedIn}`)
+      
+      if (!alreadySignedIn) {
+        console.log('  → Clicking Sign in link')
+        const signInLink = await $('a=Sign in')
+        await signInLink.waitForClickable({ timeout: 10000 })
+        await takeDebugScreenshot('Before - Before clicking Sign in')
+        await signInLink.click()
+        await takeDebugScreenshot('Before - After clicking Sign in')
+        await waitForPageLoad(15000)
+        await takeDebugScreenshot('Before - After sign in page loaded')
+      }
+      
+      // Click "View all deliveries"
+      console.log('  → Clicking View all deliveries link')
+      const viewDeliveriesLink = await $('a=View all deliveries')
+      await viewDeliveriesLink.waitForClickable({ timeout: 10000 })
+      await takeDebugScreenshot('Before - Before clicking View all deliveries')
+      await viewDeliveriesLink.click()
+      await takeDebugScreenshot('Before - After clicking View all deliveries')
+      
+      // Wait for /projects URL
+      await browser.waitUntil(
+        async () => (await browser.getUrl()).includes('/projects'),
+        { timeout: 15000, timeoutMsg: 'URL did not navigate to /projects' }
+      )
+      await waitForPageLoad()
+      await takeDebugScreenshot('Before - After projects page loaded')
+      
+      console.log('✅ beforeEach hook completed')
     })
 
     // ════════════════════════════════════════════════════════════════════════
@@ -208,9 +300,51 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
     const assignedStatuses = {}
 
     beforeEach(async () => {
-      await takeDebugScreenshot('Before (Route2) - Start')
-      await signInAndNavigateToProjects()
-      await takeDebugScreenshot('Before (Route2) - After sign in and navigate to projects')
+      console.log('⏳ Starting beforeEach hook (Route 2)...')
+      
+      // Take screenshot before anything starts
+      await takeDebugScreenshot('Before (Route2) - Initial state')
+      
+      // Navigate to home page
+      console.log('  → Navigating to home page')
+      await browser.url('/')
+      await takeDebugScreenshot('Before (Route2) - After URL launch (home page)')
+      await waitForPageLoad(15000)
+      await takeDebugScreenshot('Before (Route2) - After home page loaded')
+      
+      // Check if already signed in
+      const signOutLink = await $('a=Sign out')
+      const alreadySignedIn = await signOutLink.isExisting()
+      console.log(`  → Already signed in: ${alreadySignedIn}`)
+      
+      if (!alreadySignedIn) {
+        console.log('  → Clicking Sign in link')
+        const signInLink = await $('a=Sign in')
+        await signInLink.waitForClickable({ timeout: 10000 })
+        await takeDebugScreenshot('Before (Route2) - Before clicking Sign in')
+        await signInLink.click()
+        await takeDebugScreenshot('Before (Route2) - After clicking Sign in')
+        await waitForPageLoad(15000)
+        await takeDebugScreenshot('Before (Route2) - After sign in page loaded')
+      }
+      
+      // Click "View all deliveries"
+      console.log('  → Clicking View all deliveries link')
+      const viewDeliveriesLink = await $('a=View all deliveries')
+      await viewDeliveriesLink.waitForClickable({ timeout: 10000 })
+      await takeDebugScreenshot('Before (Route2) - Before clicking View all deliveries')
+      await viewDeliveriesLink.click()
+      await takeDebugScreenshot('Before (Route2) - After clicking View all deliveries')
+      
+      // Wait for /projects URL
+      await browser.waitUntil(
+        async () => (await browser.getUrl()).includes('/projects'),
+        { timeout: 15000, timeoutMsg: 'URL did not navigate to /projects' }
+      )
+      await waitForPageLoad()
+      await takeDebugScreenshot('Before (Route2) - After projects page loaded')
+      
+      console.log('✅ beforeEach hook (Route 2) completed')
     })
 
     // ════════════════════════════════════════════════════════════════════════
