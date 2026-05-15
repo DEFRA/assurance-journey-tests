@@ -17,10 +17,9 @@ export async function analyseAccessibility(suffix) {
 }
 
 export async function generateAccessibilityReports(filePrefix) {
-const categoryReport = await getHtmlReportByCategory()
-const guidelineReport = await getHtmlReportByGuideLine()
+  const categoryReport = await getHtmlReportByCategory()
+  const guidelineReport = await getHtmlReportByGuideLine()
 const performanceMetrics = await getHtmlPerformanceMetrics()
-  
  if (categoryReport && categoryReport.length > 0) {
     fs.writeFileSync(
       path.join(reportDirectory, `${filePrefix}-accessibility-category.html`),
