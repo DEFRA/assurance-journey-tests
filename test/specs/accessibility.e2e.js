@@ -5,10 +5,176 @@ import {
   generateAccessibilityReportIndex
 } from '../accessibility-checking.js'
 
+/**
+ * Helper function to handle the username screen during Azure AD login
+ */
+async function handleUsernameScreen() {
+  // Wait for page to be ready and stable
+  await browser.waitUntil(
+    async () => {
+      const readyState = await browser.execute(() => document.readyState)
+      return readyState === 'complete'
+    },
+    {
+      timeout: 10000,
+      timeoutMsg: 'Page did not load completely'
+    }
+  )
+
+  // Wait for username input field and ensure it's interactable
+  const usernameInput = await $('input[type="email"]')
+  await expect(usernameInput).toBeDisplayed()
+  await expect(usernameInput).toBeEnabled()
+
+  // Clear any existing value and enter username
+  await usernameInput.clearValue()
+  await usernameInput.setValue(process.env.TEST_USERNAME, { sensitive: true })
+
+  // Find and click Next button
+  const nextButton = await $('input[type="submit"]')
+  await expect(nextButton).toBeDisplayed()
+  await expect(nextButton).toBeEnabled()
+  await nextButton.click()
+
+  // Wait for navigation to password screen (password field appears)
+  await browser.waitUntil(
+    async () => {
+      const passwordInput = await $('input[type="password"]')
+      return await passwordInput.isExisting()
+    },
+    {
+      timeout: 15000,
+      timeoutMsg: 'Expected to navigate to password screen'
+    }
+  )
+}
+
+/**
+ * Helper function to handle the password screen during Azure AD login
+ */
+async function handlePasswordScreen() {
+  // Wait for page to be ready and stable
+  await browser.waitUntil(
+    async () => {
+      const readyState = await browser.execute(() => document.readyState)
+      return readyState === 'complete'
+    },
+    {
+      timeout: 10000,
+      timeoutMsg: 'Page did not load completely'
+    }
+  )
+
+  // Wait for password input field and ensure it's interactable
+  const passwordInput = await $('input[type="password"]')
+  await passwordInput.waitForDisplayed({ timeout: 15000 })
+  await expect(passwordInput).toBeDisplayed()
+  await expect(passwordInput).toBeEnabled()
+
+  // Clear any existing value and enter password
+  await passwordInput.clearValue()
+  await passwordInput.setValue(process.env.TEST_PASSWORD, { sensitive: true })
+
+  // Find and click Sign in button
+  const signInButton = await $('input[type="submit"]')
+  await expect(signInButton).toBeDisplayed()
+  await expect(signInButton).toBeEnabled()
+  await signInButton.click()
+
+  // Check if "Stay signed in?" page appears and handle it
+  const currentUrl = await browser.getUrl()
+  if (currentUrl.includes('login.microsoftonline.com')) {
+    const pageText = await browser.execute(() => document.body.textContent)
+    if (pageText.includes('Stay signed in')) {
+      const yesButton = await $('input[type="submit"][value="Yes"]')
+      if (await yesButton.isExisting()) {
+        await yesButton.click()
+      }
+    }
+  }
+
+  // Wait for final redirect away from Microsoft login
+  await browser.waitUntil(
+    async () => {
+      const url = await browser.getUrl()
+      return (
+        !url.includes('login.microsoftonline.com') &&
+        !url.includes('microsoft.com')
+      )
+    },
+    {
+      timeout: 20000,
+      timeoutMsg:
+        'Expected to be redirected after password entry and Stay signed in handling'
+    }
+  )
+}
+
+/**
+ * Helper function to perform Azure AD login
+ */
+async function performLogin() {
+  // Navigate to login page
+  await browser.url('/auth/login')
+
+  // Wait for redirect to Microsoft login
+  await browser.waitUntil(
+    async () => {
+      const url = await browser.getUrl()
+      return (
+        url.includes('login.microsoftonline.com') ||
+        url.includes('microsoft.com/')
+      )
+    },
+    {
+      timeout: 30000,
+      timeoutMsg: 'Not redirected to Microsoft login page'
+    }
+  )
+
+  await handleUsernameScreen()
+  await handlePasswordScreen()
+
+  // Wait for redirect back to application and page to load
+  await browser.waitUntil(
+    async () => {
+      const url = await browser.getUrl()
+      return (
+        !url.includes('login.microsoftonline.com') &&
+        !url.includes('microsoft.com') &&
+        !url.includes('login')
+      )
+    },
+    {
+      timeout: 20000,
+      timeoutMsg: 'Expected to be redirected back to application'
+    }
+  )
+}
+
 describe('Accessibility Testing', () => {
   before(async () => {
     // Initialize accessibility checking
     await initialiseAccessibilityChecking()
+
+    // Perform login to access authenticated pages
+    await performLogin()
+
+    // After login, we're redirected to home page, but we need to navigate to projects
+    // for tests that require project functionality
+    await browser.url('/projects')
+
+    // Wait for projects page to load
+    await browser.waitUntil(
+      async () => {
+        const readyState = await browser.execute(() => document.readyState)
+        return readyState === 'complete'
+      },
+      {
+        timeout: 10000,
+        timeoutMsg: 'Projects page did not load completely after login'
+      }
+    )
   })
 
   it('should test authenticated home page accessibility', async () => {
