@@ -70,7 +70,8 @@ export const config = {
               '--no-sandbox',
               '--disable-infobars',
               '--disable-gpu',
-              '--window-size=1920,1080'
+              '--window-size=1920,1080',
+              '--remote-debugging-port=9222',
             ]
           }
         }
