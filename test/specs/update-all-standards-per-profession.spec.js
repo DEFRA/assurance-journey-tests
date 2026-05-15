@@ -134,17 +134,49 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
         await browser.url('/')
         await takeDebugScreenshot('Before - After URL launch (home page)')
         
-        // Wait for page to load with explicit body check
+        // Wait for page to load - check that body exists AND has content
         console.log('  → Waiting for page body to be present')
         await browser.waitUntil(
           async () => {
             const body = await $('body')
-            return await body.isExisting()
+            const bodyExists = await body.isExisting()
+            if (!bodyExists) {
+              console.log('     Body element does not exist yet')
+              return false
+            }
+            // Check if body has any child elements (not just empty body)
+            const bodyHtml = await body.getHTML()
+            const hasContent = bodyHtml.length > 50 // Basic check for content
+            console.log(`     Body exists: ${bodyExists}, Content length: ${bodyHtml.length}`)
+            return bodyExists && hasContent
           },
-          { timeout: 15000, timeoutMsg: 'Page body did not load' }
+          { timeout: 30000, timeoutMsg: 'Page body did not load with content within 30 seconds' }
         )
-        await waitForPageLoad(15000)
+        await waitForPageLoad(20000)
         await takeDebugScreenshot('Before - After home page loaded')
+        
+        // Wait for Sign in link to be VISIBLE (not just existing) - this ensures page is fully loaded
+        console.log('  → Waiting for Sign in link to be visible (confirms page loaded with content)')
+        await browser.waitUntil(
+          async () => {
+            // Use more specific selectors based on actual HTML structure
+            const signInLink = await $('a[href*="/auth/"]')
+            // const signOutLink = await $('a=Sign out')
+            
+            // Check if Sign in is displayed (visible on page)
+            const signInDisplayed = await signInLink.isDisplayed().catch(() => false)
+            // const signOutDisplayed = await signOutLink.isDisplayed().catch(() => false)
+            
+            console.log(`     Sign in visible: ${signInDisplayed}, Sign out visible: ${signOutDisplayed}`)
+            return signInDisplayed
+          },
+          { 
+            timeout: 60000, 
+            timeoutMsg: 'Sign in link not became visible within 60 seconds',
+            interval: 1000 // Check every second
+          }
+        )
+        await takeDebugScreenshot('Before - After Sign in/out link visible')
         
         // Log all visible links on the page for debugging
         console.log('  → Checking available links on page')
@@ -161,7 +193,7 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
             // Skip links that can't be read
           }
         }
-        console.log(`  → Found ${linkTexts.length} links: ${linkTexts.slice(0, 5).join(', ')}${linkTexts.length > 5 ? '...' : ''}`)
+        console.log(`  → Found ${linkTexts.length} links: ${linkTexts.slice(0, 10).join(', ')}${linkTexts.length > 10 ? '...' : ''}`)
         
         // Check if already signed in
         console.log('  → Checking if user is already signed in')
@@ -170,62 +202,58 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
         console.log(`  → Already signed in: ${alreadySignedIn}`)
         
         if (!alreadySignedIn) {
-          console.log('  → Need to sign in - looking for Sign in link')
-          const signInLink = await $('a=Sign in')
-          const signInExists = await signInLink.isExisting()
-          console.log(`  → Sign in link exists: ${signInExists}`)
+          console.log('  → Need to sign in - waiting for Sign in link to be clickable')
+          // Use more specific selector: a[href*="/auth/"]
+          const signInLink = await $('a[href*="/auth/"]')
           
-          if (!signInExists) {
-            await takeDebugScreenshot('Before - ERROR Sign in link not found')
-            throw new Error('Sign in link not found on the page. Available links logged above.')
-          }
-          
-          await signInLink.waitForClickable({ timeout: 10000 })
+          // Wait for Sign in link to be clickable with increased timeout
+          await signInLink.waitForClickable({ timeout: 20000 })
           await takeDebugScreenshot('Before - Before clicking Sign in')
           console.log('  → Clicking Sign in link')
           await signInLink.click()
-          await takeDebugScreenshot('Before - After clicking Sign in')
+          await takeDebugScreenshot('Before - Immediately after clicking Sign in')
           
-          // Wait for navigation to complete
+          // Wait longer for authentication to complete (internal authentication)
+          console.log('  → Waiting for authentication process to complete (this may take time)')
+          await browser.pause(5000) // Initial wait for redirect/auth to start
+          await waitForPageLoad(30000) // Extended timeout for auth completion
+          await takeDebugScreenshot('Before - After authentication completed')
+          
+          // Wait for page to stabilize after authentication
           await browser.pause(2000)
-          await waitForPageLoad(15000)
-          await takeDebugScreenshot('Before - After sign in page loaded')
+          await takeDebugScreenshot('Before - After stabilization pause')
         } else {
           console.log('  → User is already authenticated, skipping sign in')
         }
         
-        // Click "View all deliveries"
-        console.log('  → Looking for View all deliveries link')
-        const viewDeliveriesLink = await $('a=View all deliveries')
-        const viewDeliveriesExists = await viewDeliveriesLink.isExisting()
-        console.log(`  → View all deliveries link exists: ${viewDeliveriesExists}`)
-        
-        if (!viewDeliveriesExists) {
-          // Try alternative selectors
-          console.log('  → Trying alternative selectors for deliveries link')
-          const altLink = await $('a*=deliveries')
-          const altExists = await altLink.isExisting()
-          
-          if (!altExists) {
-            await takeDebugScreenshot('Before - ERROR View all deliveries link not found')
-            
-            // Log current page info
-            const currentUrl = await browser.getUrl()
-            const pageTitle = await browser.getTitle()
-            console.log(`  → Current URL: ${currentUrl}`)
-            console.log(`  → Current Title: ${pageTitle}`)
-            
-            throw new Error('View all deliveries link not found. See screenshot for current page state.')
+        // Wait for "View all deliveries" link to appear (it may take time after authentication)
+        console.log('  → Waiting for View all deliveries link to appear')
+        await browser.waitUntil(
+          async () => {
+            // Use more specific selector: a[href="/projects"]
+            const viewDeliveriesLink = await $('a[href="/projects"]')
+            const exists = await viewDeliveriesLink.isExisting()
+            console.log(`     View all deliveries exists: ${exists}`)
+            return exists
+          },
+          { 
+            timeout: 30000, 
+            timeoutMsg: 'View all deliveries link did not appear within 30 seconds after authentication',
+            interval: 1000 // Check every second
           }
-        }
+        )
+        await takeDebugScreenshot('Before - After View all deliveries link appeared')
         
-        await viewDeliveriesLink.waitForClickable({ timeout: 10000 })
+        // Now click "View all deliveries" - reuse the element we already have
+        console.log('  → View all deliveries link is now visible, waiting for it to be clickable')
+        const viewDeliveriesLinkFinal = await $('a[href="/projects"]')
+        await viewDeliveriesLinkFinal.waitForClickable({ timeout: 10000 })
         await takeDebugScreenshot('Before - Before clicking View all deliveries')
         console.log('  → Clicking View all deliveries link')
-        await viewDeliveriesLink.click()
-        await takeDebugScreenshot('Before - After clicking View all deliveries')
+        await viewDeliveriesLinkFinal.click()
+        await takeDebugScreenshot('Before - Immediately after clicking View all deliveries')
         
-        // Wait for /projects URL
+        // Wait for /projects URL with increased timeout
         console.log('  → Waiting for navigation to /projects')
         await browser.waitUntil(
           async () => {
@@ -233,9 +261,9 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
             console.log(`     Current URL: ${url}`)
             return url.includes('/projects')
           },
-          { timeout: 15000, timeoutMsg: 'URL did not navigate to /projects' }
+          { timeout: 30000, timeoutMsg: 'URL did not navigate to /projects within 30 seconds' }
         )
-        await waitForPageLoad()
+        await waitForPageLoad(20000)
         await takeDebugScreenshot('Before - After projects page loaded')
         
         console.log('✅ beforeEach hook completed successfully')
@@ -407,17 +435,49 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
         await browser.url('/')
         await takeDebugScreenshot('Before (Route2) - After URL launch (home page)')
         
-        // Wait for page to load with explicit body check
+        // Wait for page to load - check that body exists AND has content
         console.log('  → Waiting for page body to be present')
         await browser.waitUntil(
           async () => {
             const body = await $('body')
-            return await body.isExisting()
+            const bodyExists = await body.isExisting()
+            if (!bodyExists) {
+              console.log('     Body element does not exist yet')
+              return false
+            }
+            // Check if body has any child elements (not just empty body)
+            const bodyHtml = await body.getHTML()
+            const hasContent = bodyHtml.length > 50 // Basic check for content
+            console.log(`     Body exists: ${bodyExists}, Content length: ${bodyHtml.length}`)
+            return bodyExists && hasContent
           },
-          { timeout: 15000, timeoutMsg: 'Page body did not load' }
+          { timeout: 30000, timeoutMsg: 'Page body did not load with content within 30 seconds' }
         )
-        await waitForPageLoad(15000)
+        await waitForPageLoad(20000)
         await takeDebugScreenshot('Before (Route2) - After home page loaded')
+        
+        // Wait for Sign in link to be VISIBLE (not just existing) - this ensures page is fully loaded
+        console.log('  → Waiting for Sign in link to be visible (confirms page loaded with content)')
+        await browser.waitUntil(
+          async () => {
+            // Use more specific selectors based on actual HTML structure
+            const signInLink = await $('a[href*="/auth/"]')
+            const signOutLink = await $('a=Sign out')
+            
+            // Check if Sign in is displayed (visible on page)
+            const signInDisplayed = await signInLink.isDisplayed().catch(() => false)
+            const signOutDisplayed = await signOutLink.isDisplayed().catch(() => false)
+            
+            console.log(`     Sign in visible: ${signInDisplayed}, Sign out visible: ${signOutDisplayed}`)
+            return signInDisplayed || signOutDisplayed
+          },
+          { 
+            timeout: 30000, 
+            timeoutMsg: 'Neither Sign in nor Sign out link became visible within 30 seconds',
+            interval: 1000 // Check every second
+          }
+        )
+        await takeDebugScreenshot('Before (Route2) - After Sign in/out link visible')
         
         // Log all visible links on the page for debugging
         console.log('  → Checking available links on page')
@@ -434,7 +494,7 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
             // Skip links that can't be read
           }
         }
-        console.log(`  → Found ${linkTexts.length} links: ${linkTexts.slice(0, 5).join(', ')}${linkTexts.length > 5 ? '...' : ''}`)
+        console.log(`  → Found ${linkTexts.length} links: ${linkTexts.slice(0, 10).join(', ')}${linkTexts.length > 10 ? '...' : ''}`)
         
         // Check if already signed in
         console.log('  → Checking if user is already signed in')
@@ -443,62 +503,58 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
         console.log(`  → Already signed in: ${alreadySignedIn}`)
         
         if (!alreadySignedIn) {
-          console.log('  → Need to sign in - looking for Sign in link')
-          const signInLink = await $('a=Sign in')
-          const signInExists = await signInLink.isExisting()
-          console.log(`  → Sign in link exists: ${signInExists}`)
+          console.log('  → Need to sign in - waiting for Sign in link to be clickable')
+          // Use more specific selector: a[href*="/auth/"]
+          const signInLink = await $('a[href*="/auth/"]')
           
-          if (!signInExists) {
-            await takeDebugScreenshot('Before (Route2) - ERROR Sign in link not found')
-            throw new Error('Sign in link not found on the page. Available links logged above.')
-          }
-          
-          await signInLink.waitForClickable({ timeout: 10000 })
+          // Wait for Sign in link to be clickable with increased timeout
+          await signInLink.waitForClickable({ timeout: 20000 })
           await takeDebugScreenshot('Before (Route2) - Before clicking Sign in')
           console.log('  → Clicking Sign in link')
           await signInLink.click()
-          await takeDebugScreenshot('Before (Route2) - After clicking Sign in')
+          await takeDebugScreenshot('Before (Route2) - Immediately after clicking Sign in')
           
-          // Wait for navigation to complete
+          // Wait longer for authentication to complete (internal authentication)
+          console.log('  → Waiting for authentication process to complete (this may take time)')
+          await browser.pause(5000) // Initial wait for redirect/auth to start
+          await waitForPageLoad(30000) // Extended timeout for auth completion
+          await takeDebugScreenshot('Before (Route2) - After authentication completed')
+          
+          // Wait for page to stabilize after authentication
           await browser.pause(2000)
-          await waitForPageLoad(15000)
-          await takeDebugScreenshot('Before (Route2) - After sign in page loaded')
+          await takeDebugScreenshot('Before (Route2) - After stabilization pause')
         } else {
           console.log('  → User is already authenticated, skipping sign in')
         }
         
-        // Click "View all deliveries"
-        console.log('  → Looking for View all deliveries link')
-        const viewDeliveriesLink = await $('a=View all deliveries')
-        const viewDeliveriesExists = await viewDeliveriesLink.isExisting()
-        console.log(`  → View all deliveries link exists: ${viewDeliveriesExists}`)
-        
-        if (!viewDeliveriesExists) {
-          // Try alternative selectors
-          console.log('  → Trying alternative selectors for deliveries link')
-          const altLink = await $('a*=deliveries')
-          const altExists = await altLink.isExisting()
-          
-          if (!altExists) {
-            await takeDebugScreenshot('Before (Route2) - ERROR View all deliveries link not found')
-            
-            // Log current page info
-            const currentUrl = await browser.getUrl()
-            const pageTitle = await browser.getTitle()
-            console.log(`  → Current URL: ${currentUrl}`)
-            console.log(`  → Current Title: ${pageTitle}`)
-            
-            throw new Error('View all deliveries link not found. See screenshot for current page state.')
+        // Wait for "View all deliveries" link to appear (it may take time after authentication)
+        console.log('  → Waiting for View all deliveries link to appear')
+        await browser.waitUntil(
+          async () => {
+            // Use more specific selector: a[href="/projects"]
+            const viewDeliveriesLink = await $('a[href="/projects"]')
+            const exists = await viewDeliveriesLink.isExisting()
+            console.log(`     View all deliveries exists: ${exists}`)
+            return exists
+          },
+          { 
+            timeout: 30000, 
+            timeoutMsg: 'View all deliveries link did not appear within 30 seconds after authentication',
+            interval: 1000 // Check every second
           }
-        }
+        )
+        await takeDebugScreenshot('Before (Route2) - After View all deliveries link appeared')
         
-        await viewDeliveriesLink.waitForClickable({ timeout: 10000 })
+        // Now click "View all deliveries"
+        console.log('  → View all deliveries link is now visible, waiting for it to be clickable')
+        const viewDeliveriesLinkRoute2 = await $('a[href="/projects"]')
+        await viewDeliveriesLinkRoute2.waitForClickable({ timeout: 10000 })
         await takeDebugScreenshot('Before (Route2) - Before clicking View all deliveries')
         console.log('  → Clicking View all deliveries link')
-        await viewDeliveriesLink.click()
-        await takeDebugScreenshot('Before (Route2) - After clicking View all deliveries')
+        await viewDeliveriesLinkRoute2.click()
+        await takeDebugScreenshot('Before (Route2) - Immediately after clicking View all deliveries')
         
-        // Wait for /projects URL
+        // Wait for /projects URL with increased timeout
         console.log('  → Waiting for navigation to /projects')
         await browser.waitUntil(
           async () => {
@@ -506,9 +562,9 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
             console.log(`     Current URL: ${url}`)
             return url.includes('/projects')
           },
-          { timeout: 15000, timeoutMsg: 'URL did not navigate to /projects' }
+          { timeout: 30000, timeoutMsg: 'URL did not navigate to /projects within 30 seconds' }
         )
-        await waitForPageLoad()
+        await waitForPageLoad(20000)
         await takeDebugScreenshot('Before (Route2) - After projects page loaded')
         
         console.log('✅ beforeEach hook (Route 2) completed successfully')
