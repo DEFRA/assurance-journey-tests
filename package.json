@@ -14,7 +14,6 @@
     "components": "test/components"
   },
   "scripts": {
-    "clean": "rm -rf allure-results && rm -rf allure-report",
       "clean": "rimraf allure-results allure-report",
     "test": "npm run clean && wdio run wdio.conf.js",
     "test:browserstack": "npm run clean && wdio run wdio.browserstack.conf.js",
