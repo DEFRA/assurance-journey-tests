@@ -24,6 +24,27 @@ import {
 import { SERVICE_STANDARDS } from '../data/delivery.data.js'
 import { waitForPageLoad, signInAndNavigateToProjects } from '../helpers/delivery.helper.js'
 
+/**
+ * Helper: Take a screenshot with a descriptive name for debugging
+ * @param {string} stepName - Description of the step
+ */
+async function takeDebugScreenshot (stepName) {
+  try {
+    const screenshot = await browser.takeScreenshot()
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19)
+    const name = `${stepName.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}`
+    
+    // Attach to Allure report using addAttachment
+    if (global.allure) {
+      await global.allure.addAttachment(name, Buffer.from(screenshot, 'base64'), 'image/png')
+    }
+    
+    console.log(`  📸 Screenshot: ${stepName}`)
+  } catch (err) {
+    console.log(`  ⚠️ Screenshot failed for "${stepName}": ${err.message}`)
+  }
+}
+
 // ── Parameterised describe – one per profession ──────────────────────────────
 for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
   describe(`Update All Standards – ${scenario.professionLabel} (${scenario.projectName})`, () => {
@@ -32,7 +53,9 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
     const assignedStatuses = {}
 
     beforeEach(async () => {
+      await takeDebugScreenshot('Before - Start')
       await signInAndNavigateToProjects()
+      await takeDebugScreenshot('Before - After sign in and navigate to projects')
     })
 
     // ════════════════════════════════════════════════════════════════════════
@@ -50,17 +73,20 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
           // First iteration: navigate to the project via search
           await AssessmentPage.openProject(scenario.projectName)
           await waitForPageLoad()
+          await takeDebugScreenshot(`Std${stdNum} - After opening project`)
         }
         // After save, browser is already on the project detail page
 
         await AssessmentPage.clickAddServiceStandardUpdate()
         await waitForPageLoad()
+        await takeDebugScreenshot(`Std${stdNum} - After clicking Add Service Standard update`)
 
         // Verify page heading
         await expect(AssessmentPage.pageHeading).toHaveText('Add Service Standard update', { containing: true })
 
         // Select profession → wait for standards dropdown to populate
         await AssessmentPage.selectProfession(scenario.professionId)
+        await takeDebugScreenshot(`Std${stdNum} - After selecting profession`)
 
         // Grab all available standard option values to find the one matching stdNum
         // eslint-disable-next-line @typescript-eslint/await-thenable
@@ -78,6 +104,7 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
         }
 
         if (!targetValue) {
+          await takeDebugScreenshot(`Std${stdNum} - ERROR standard not found in dropdown`)
           throw new Error(
             `Standard "${stdNum}. ..." not found in dropdown for "${scenario.professionLabel}".\n` +
             `Available: [${optionTexts.join(' | ')}]`
@@ -91,6 +118,7 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
           statusValue: status.value,
           commentary
         })
+        await takeDebugScreenshot(`Std${stdNum} - After submitting assessment`)
 
         // Record the assigned status for later verification
         assignedStatuses[stdNum] = status.label
@@ -106,6 +134,7 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
       // Open the project detail page
       await AssessmentPage.openProject(scenario.projectName)
       await waitForPageLoad()
+      await takeDebugScreenshot('Verify - After opening project')
 
       // Switch to compliance tab
       await AssessmentPage.serviceStandardComplianceTab.waitForDisplayed({ timeout: 5000 })
@@ -117,6 +146,7 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
         },
         { timeout: 5000, timeoutMsg: 'Compliance tab did not become visible' }
       )
+      await takeDebugScreenshot('Verify - After clicking compliance tab')
 
       // Read the whole compliance table
       // eslint-disable-next-line @typescript-eslint/await-thenable
@@ -156,12 +186,15 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
       }
 
       if (failures.length > 0) {
+        await takeDebugScreenshot('Verify - FAILED compliance status mismatch')
         const divider = '\n' + '─'.repeat(60) + '\n'
         throw new Error(
           `${failures.length} compliance status mismatch(es):` +
           divider + failures.join(divider) + '\n' + '─'.repeat(60)
         )
       }
+      
+      await takeDebugScreenshot('Verify - SUCCESS all statuses correct')
     })
   })
 }
@@ -175,7 +208,9 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
     const assignedStatuses = {}
 
     beforeEach(async () => {
+      await takeDebugScreenshot('Before (Route2) - Start')
       await signInAndNavigateToProjects()
+      await takeDebugScreenshot('Before (Route2) - After sign in and navigate to projects')
     })
 
     // ════════════════════════════════════════════════════════════════════════
@@ -193,18 +228,22 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
           // First standard only: navigate via compliance tab → standard detail
           await AssessmentPage.openProject(scenario.projectName)
           await waitForPageLoad()
+          await takeDebugScreenshot(`Route2-Std${stdNum} - After opening project`)
 
           await AssessmentPage.clickStandardFromComplianceTab(1)
           await waitForPageLoad()
+          await takeDebugScreenshot(`Route2-Std${stdNum} - After clicking standard from compliance tab`)
 
           // On the standard detail page click "Add service standard update"
           await AssessmentPage.clickAddUpdateFromStandardDetail()
           await waitForPageLoad()
+          await takeDebugScreenshot(`Route2-Std${stdNum} - After clicking Add update from standard detail`)
         } else {
           // Subsequent standards: save redirected us back to the project page.
           // Click "Add Service Standard update" directly — no need to search again.
           await AssessmentPage.clickAddServiceStandardUpdate()
           await waitForPageLoad()
+          await takeDebugScreenshot(`Route2-Std${stdNum} - After clicking Add Service Standard update`)
         }
 
         // Verify page heading
@@ -212,6 +251,7 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
 
         // Select profession → wait for standards dropdown to populate
         await AssessmentPage.selectProfession(scenario.professionId)
+        await takeDebugScreenshot(`Route2-Std${stdNum} - After selecting profession`)
 
         // eslint-disable-next-line @typescript-eslint/await-thenable
         const optionTexts = await AssessmentPage.getStandardOptions()
@@ -227,6 +267,7 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
         }
 
         if (!targetValue) {
+          await takeDebugScreenshot(`Route2-Std${stdNum} - ERROR standard not found in dropdown`)
           throw new Error(
             `Standard "${stdNum}. ..." not found in dropdown for "${scenario.professionLabel}".\n` +
             `Available: [${optionTexts.join(' | ')}]`
@@ -239,6 +280,7 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
           statusValue: status.value,
           commentary
         })
+        await takeDebugScreenshot(`Route2-Std${stdNum} - After submitting assessment`)
 
         assignedStatuses[stdNum] = status.label
         console.log(`   Standard ${stdNum} saved as ${status.label}`)
@@ -251,6 +293,7 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
     it(`should show correct statuses in compliance tab after compliance-tab-route updates for ${scenario.professionLabel}`, async () => {
       await AssessmentPage.openProject(scenario.projectName)
       await waitForPageLoad()
+      await takeDebugScreenshot('Route2-Verify - After opening project')
 
       await AssessmentPage.serviceStandardComplianceTab.waitForDisplayed({ timeout: 5000 })
       await AssessmentPage.serviceStandardComplianceTab.click()
@@ -261,6 +304,7 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
         },
         { timeout: 5000, timeoutMsg: 'Compliance tab did not become visible' }
       )
+      await takeDebugScreenshot('Route2-Verify - After clicking compliance tab')
 
       // eslint-disable-next-line @typescript-eslint/await-thenable
       const tableData = await AssessmentPage.getComplianceTableData()
@@ -293,12 +337,15 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
       }
 
       if (failures.length > 0) {
+        await takeDebugScreenshot('Route2-Verify - FAILED compliance status mismatch')
         const divider = '\n' + '─'.repeat(60) + '\n'
         throw new Error(
           `${failures.length} compliance status mismatch(es):` +
           divider + failures.join(divider) + '\n' + '─'.repeat(60)
         )
       }
+      
+      await takeDebugScreenshot('Route2-Verify - SUCCESS all statuses correct')
     })
   })
 }
