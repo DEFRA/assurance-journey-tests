@@ -27,71 +27,91 @@ import { waitForPageLoad, signInAndNavigateToProjects } from '../helpers/deliver
 /**
  * Helper: Take a screenshot with a descriptive name for debugging
  * Also captures URL, title, HTML source, and browser state information
+ * Uses Allure step reporting for better visibility in reports
  * @param {string} stepName - Description of the step
  */
 async function takeDebugScreenshot (stepName) {
   try {
-    // Capture browser state information
-    const url = await browser.getUrl()
-    const title = await browser.getTitle()
-    const windowSize = await browser.getWindowSize()
-    
-    // Get page source to help debug blank screenshots
-    let pageSource = ''
-    try {
-      pageSource = await browser.getPageSource()
-    } catch (e) {
-      pageSource = `Failed to get page source: ${e.message}`
-    }
-    
-    // Take screenshot
-    const screenshot = await browser.takeScreenshot()
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19)
-    const name = `${stepName.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}`
-    
-    // Create detailed context information
-    const contextInfo = {
-      step: stepName,
-      timestamp: new Date().toISOString(),
-      url: url,
-      title: title,
-      windowSize: `${windowSize.width}x${windowSize.height}`,
-      pageSourceLength: pageSource.length,
-      pageSourcePreview: pageSource.substring(0, 500) // First 500 chars
-    }
-    
-    // Log to console with full details
-    console.log(`  📸 Screenshot: ${stepName}`)
-    console.log(`     URL: ${url}`)
-    console.log(`     Title: ${title}`)
-    console.log(`     Window: ${windowSize.width}x${windowSize.height}`)
-    console.log(`     Page Source Length: ${pageSource.length} chars`)
-    
-    // Attach screenshot to Allure report
-    if (global.allure) {
-      await global.allure.addAttachment(name, Buffer.from(screenshot, 'base64'), 'image/png')
+    // Use Allure step if available to create visual grouping in report
+    const captureStep = async () => {
+      // Capture browser state information
+      const url = await browser.getUrl()
+      const title = await browser.getTitle()
+      const windowSize = await browser.getWindowSize()
       
-      // Also attach context info as JSON
-      await global.allure.addAttachment(
-        `${name}_context`,
-        JSON.stringify(contextInfo, null, 2),
-        'application/json'
-      )
+      // Get page source to help debug blank screenshots
+      let pageSource = ''
+      try {
+        pageSource = await browser.getPageSource()
+      } catch (e) {
+        pageSource = `Failed to get page source: ${e.message}`
+      }
       
-      // Attach HTML source for debugging blank pages
-      await global.allure.addAttachment(
-        `${name}_source`,
-        pageSource,
-        'text/html'
-      )
+      // Take screenshot
+      const screenshot = await browser.takeScreenshot()
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19)
+      const name = `${stepName.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}`
+      
+      // Create detailed context information
+      const contextInfo = {
+        step: stepName,
+        timestamp: new Date().toISOString(),
+        url: url,
+        title: title,
+        windowSize: `${windowSize.width}x${windowSize.height}`,
+        pageSourceLength: pageSource.length,
+        pageSourcePreview: pageSource.substring(0, 500) // First 500 chars
+      }
+      
+      // Log to console with full details
+      console.log(`  📸 Screenshot: ${stepName}`)
+      console.log(`     URL: ${url}`)
+      console.log(`     Title: ${title}`)
+      console.log(`     Window: ${windowSize.width}x${windowSize.height}`)
+      console.log(`     Page Source Length: ${pageSource.length} chars`)
+      
+      // Attach screenshot to Allure report
+      if (global.allure) {
+        await global.allure.addAttachment(name, Buffer.from(screenshot, 'base64'), 'image/png')
+        
+        // Also attach context info as JSON
+        await global.allure.addAttachment(
+          `${name}_context`,
+          JSON.stringify(contextInfo, null, 2),
+          'application/json'
+        )
+        
+        // Attach HTML source for debugging blank pages
+        await global.allure.addAttachment(
+          `${name}_source`,
+          pageSource,
+          'text/html'
+        )
+      }
+      
+      // Add a small pause to ensure page is stable (helps with blank screenshots)
+      await browser.pause(500)
+      
+      return contextInfo
     }
     
-    // Add a small pause to ensure page is stable (helps with blank screenshots)
-    await browser.pause(500)
+    // Execute with Allure step wrapper if available
+    if (global.allure && typeof global.allure.startStep === 'function') {
+      await global.allure.startStep(`Screenshot: ${stepName}`)
+      const result = await captureStep()
+      await global.allure.endStep('passed')
+      return result
+    } else {
+      return await captureStep()
+    }
     
   } catch (err) {
     console.log(`  ⚠️ Screenshot failed for "${stepName}": ${err.message}`)
     console.log(`     Stack: ${err.stack}`)
+    
+    if (global.allure && typeof global.allure.endStep === 'function') {
+      await global.allure.endStep('failed')
+    }
   }
 }
 
@@ -108,46 +128,122 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
       // Take screenshot before anything starts
       await takeDebugScreenshot('Before - Initial state')
       
-      // Navigate to home page
-      console.log('  → Navigating to home page')
-      await browser.url('/')
-      await takeDebugScreenshot('Before - After URL launch (home page)')
-      await waitForPageLoad(15000)
-      await takeDebugScreenshot('Before - After home page loaded')
-      
-      // Check if already signed in
-      const signOutLink = await $('a=Sign out')
-      const alreadySignedIn = await signOutLink.isExisting()
-      console.log(`  → Already signed in: ${alreadySignedIn}`)
-      
-      if (!alreadySignedIn) {
-        console.log('  → Clicking Sign in link')
-        const signInLink = await $('a=Sign in')
-        await signInLink.waitForClickable({ timeout: 10000 })
-        await takeDebugScreenshot('Before - Before clicking Sign in')
-        await signInLink.click()
-        await takeDebugScreenshot('Before - After clicking Sign in')
+      try {
+        // Navigate to home page
+        console.log('  → Navigating to home page')
+        await browser.url('/')
+        await takeDebugScreenshot('Before - After URL launch (home page)')
+        
+        // Wait for page to load with explicit body check
+        console.log('  → Waiting for page body to be present')
+        await browser.waitUntil(
+          async () => {
+            const body = await $('body')
+            return await body.isExisting()
+          },
+          { timeout: 15000, timeoutMsg: 'Page body did not load' }
+        )
         await waitForPageLoad(15000)
-        await takeDebugScreenshot('Before - After sign in page loaded')
+        await takeDebugScreenshot('Before - After home page loaded')
+        
+        // Log all visible links on the page for debugging
+        console.log('  → Checking available links on page')
+        const allLinks = await $$('a')
+        const linkTexts = []
+        for (const link of allLinks) {
+          try {
+            const text = await link.getText()
+            const href = await link.getAttribute('href')
+            if (text || href) {
+              linkTexts.push(`"${text}" (${href})`)
+            }
+          } catch (e) {
+            // Skip links that can't be read
+          }
+        }
+        console.log(`  → Found ${linkTexts.length} links: ${linkTexts.slice(0, 5).join(', ')}${linkTexts.length > 5 ? '...' : ''}`)
+        
+        // Check if already signed in
+        console.log('  → Checking if user is already signed in')
+        const signOutLink = await $('a=Sign out')
+        const alreadySignedIn = await signOutLink.isExisting()
+        console.log(`  → Already signed in: ${alreadySignedIn}`)
+        
+        if (!alreadySignedIn) {
+          console.log('  → Need to sign in - looking for Sign in link')
+          const signInLink = await $('a=Sign in')
+          const signInExists = await signInLink.isExisting()
+          console.log(`  → Sign in link exists: ${signInExists}`)
+          
+          if (!signInExists) {
+            await takeDebugScreenshot('Before - ERROR Sign in link not found')
+            throw new Error('Sign in link not found on the page. Available links logged above.')
+          }
+          
+          await signInLink.waitForClickable({ timeout: 10000 })
+          await takeDebugScreenshot('Before - Before clicking Sign in')
+          console.log('  → Clicking Sign in link')
+          await signInLink.click()
+          await takeDebugScreenshot('Before - After clicking Sign in')
+          
+          // Wait for navigation to complete
+          await browser.pause(2000)
+          await waitForPageLoad(15000)
+          await takeDebugScreenshot('Before - After sign in page loaded')
+        } else {
+          console.log('  → User is already authenticated, skipping sign in')
+        }
+        
+        // Click "View all deliveries"
+        console.log('  → Looking for View all deliveries link')
+        const viewDeliveriesLink = await $('a=View all deliveries')
+        const viewDeliveriesExists = await viewDeliveriesLink.isExisting()
+        console.log(`  → View all deliveries link exists: ${viewDeliveriesExists}`)
+        
+        if (!viewDeliveriesExists) {
+          // Try alternative selectors
+          console.log('  → Trying alternative selectors for deliveries link')
+          const altLink = await $('a*=deliveries')
+          const altExists = await altLink.isExisting()
+          
+          if (!altExists) {
+            await takeDebugScreenshot('Before - ERROR View all deliveries link not found')
+            
+            // Log current page info
+            const currentUrl = await browser.getUrl()
+            const pageTitle = await browser.getTitle()
+            console.log(`  → Current URL: ${currentUrl}`)
+            console.log(`  → Current Title: ${pageTitle}`)
+            
+            throw new Error('View all deliveries link not found. See screenshot for current page state.')
+          }
+        }
+        
+        await viewDeliveriesLink.waitForClickable({ timeout: 10000 })
+        await takeDebugScreenshot('Before - Before clicking View all deliveries')
+        console.log('  → Clicking View all deliveries link')
+        await viewDeliveriesLink.click()
+        await takeDebugScreenshot('Before - After clicking View all deliveries')
+        
+        // Wait for /projects URL
+        console.log('  → Waiting for navigation to /projects')
+        await browser.waitUntil(
+          async () => {
+            const url = await browser.getUrl()
+            console.log(`     Current URL: ${url}`)
+            return url.includes('/projects')
+          },
+          { timeout: 15000, timeoutMsg: 'URL did not navigate to /projects' }
+        )
+        await waitForPageLoad()
+        await takeDebugScreenshot('Before - After projects page loaded')
+        
+        console.log('✅ beforeEach hook completed successfully')
+      } catch (error) {
+        console.log(`❌ beforeEach hook FAILED: ${error.message}`)
+        await takeDebugScreenshot('Before - FATAL ERROR in beforeEach')
+        throw error
       }
-      
-      // Click "View all deliveries"
-      console.log('  → Clicking View all deliveries link')
-      const viewDeliveriesLink = await $('a=View all deliveries')
-      await viewDeliveriesLink.waitForClickable({ timeout: 10000 })
-      await takeDebugScreenshot('Before - Before clicking View all deliveries')
-      await viewDeliveriesLink.click()
-      await takeDebugScreenshot('Before - After clicking View all deliveries')
-      
-      // Wait for /projects URL
-      await browser.waitUntil(
-        async () => (await browser.getUrl()).includes('/projects'),
-        { timeout: 15000, timeoutMsg: 'URL did not navigate to /projects' }
-      )
-      await waitForPageLoad()
-      await takeDebugScreenshot('Before - After projects page loaded')
-      
-      console.log('✅ beforeEach hook completed')
     })
 
     // ════════════════════════════════════════════════════════════════════════
@@ -305,46 +401,122 @@ for (const scenario of PROFESSION_UPDATE_SCENARIOS) {
       // Take screenshot before anything starts
       await takeDebugScreenshot('Before (Route2) - Initial state')
       
-      // Navigate to home page
-      console.log('  → Navigating to home page')
-      await browser.url('/')
-      await takeDebugScreenshot('Before (Route2) - After URL launch (home page)')
-      await waitForPageLoad(15000)
-      await takeDebugScreenshot('Before (Route2) - After home page loaded')
-      
-      // Check if already signed in
-      const signOutLink = await $('a=Sign out')
-      const alreadySignedIn = await signOutLink.isExisting()
-      console.log(`  → Already signed in: ${alreadySignedIn}`)
-      
-      if (!alreadySignedIn) {
-        console.log('  → Clicking Sign in link')
-        const signInLink = await $('a=Sign in')
-        await signInLink.waitForClickable({ timeout: 10000 })
-        await takeDebugScreenshot('Before (Route2) - Before clicking Sign in')
-        await signInLink.click()
-        await takeDebugScreenshot('Before (Route2) - After clicking Sign in')
+      try {
+        // Navigate to home page
+        console.log('  → Navigating to home page')
+        await browser.url('/')
+        await takeDebugScreenshot('Before (Route2) - After URL launch (home page)')
+        
+        // Wait for page to load with explicit body check
+        console.log('  → Waiting for page body to be present')
+        await browser.waitUntil(
+          async () => {
+            const body = await $('body')
+            return await body.isExisting()
+          },
+          { timeout: 15000, timeoutMsg: 'Page body did not load' }
+        )
         await waitForPageLoad(15000)
-        await takeDebugScreenshot('Before (Route2) - After sign in page loaded')
+        await takeDebugScreenshot('Before (Route2) - After home page loaded')
+        
+        // Log all visible links on the page for debugging
+        console.log('  → Checking available links on page')
+        const allLinks = await $$('a')
+        const linkTexts = []
+        for (const link of allLinks) {
+          try {
+            const text = await link.getText()
+            const href = await link.getAttribute('href')
+            if (text || href) {
+              linkTexts.push(`"${text}" (${href})`)
+            }
+          } catch (e) {
+            // Skip links that can't be read
+          }
+        }
+        console.log(`  → Found ${linkTexts.length} links: ${linkTexts.slice(0, 5).join(', ')}${linkTexts.length > 5 ? '...' : ''}`)
+        
+        // Check if already signed in
+        console.log('  → Checking if user is already signed in')
+        const signOutLink = await $('a=Sign out')
+        const alreadySignedIn = await signOutLink.isExisting()
+        console.log(`  → Already signed in: ${alreadySignedIn}`)
+        
+        if (!alreadySignedIn) {
+          console.log('  → Need to sign in - looking for Sign in link')
+          const signInLink = await $('a=Sign in')
+          const signInExists = await signInLink.isExisting()
+          console.log(`  → Sign in link exists: ${signInExists}`)
+          
+          if (!signInExists) {
+            await takeDebugScreenshot('Before (Route2) - ERROR Sign in link not found')
+            throw new Error('Sign in link not found on the page. Available links logged above.')
+          }
+          
+          await signInLink.waitForClickable({ timeout: 10000 })
+          await takeDebugScreenshot('Before (Route2) - Before clicking Sign in')
+          console.log('  → Clicking Sign in link')
+          await signInLink.click()
+          await takeDebugScreenshot('Before (Route2) - After clicking Sign in')
+          
+          // Wait for navigation to complete
+          await browser.pause(2000)
+          await waitForPageLoad(15000)
+          await takeDebugScreenshot('Before (Route2) - After sign in page loaded')
+        } else {
+          console.log('  → User is already authenticated, skipping sign in')
+        }
+        
+        // Click "View all deliveries"
+        console.log('  → Looking for View all deliveries link')
+        const viewDeliveriesLink = await $('a=View all deliveries')
+        const viewDeliveriesExists = await viewDeliveriesLink.isExisting()
+        console.log(`  → View all deliveries link exists: ${viewDeliveriesExists}`)
+        
+        if (!viewDeliveriesExists) {
+          // Try alternative selectors
+          console.log('  → Trying alternative selectors for deliveries link')
+          const altLink = await $('a*=deliveries')
+          const altExists = await altLink.isExisting()
+          
+          if (!altExists) {
+            await takeDebugScreenshot('Before (Route2) - ERROR View all deliveries link not found')
+            
+            // Log current page info
+            const currentUrl = await browser.getUrl()
+            const pageTitle = await browser.getTitle()
+            console.log(`  → Current URL: ${currentUrl}`)
+            console.log(`  → Current Title: ${pageTitle}`)
+            
+            throw new Error('View all deliveries link not found. See screenshot for current page state.')
+          }
+        }
+        
+        await viewDeliveriesLink.waitForClickable({ timeout: 10000 })
+        await takeDebugScreenshot('Before (Route2) - Before clicking View all deliveries')
+        console.log('  → Clicking View all deliveries link')
+        await viewDeliveriesLink.click()
+        await takeDebugScreenshot('Before (Route2) - After clicking View all deliveries')
+        
+        // Wait for /projects URL
+        console.log('  → Waiting for navigation to /projects')
+        await browser.waitUntil(
+          async () => {
+            const url = await browser.getUrl()
+            console.log(`     Current URL: ${url}`)
+            return url.includes('/projects')
+          },
+          { timeout: 15000, timeoutMsg: 'URL did not navigate to /projects' }
+        )
+        await waitForPageLoad()
+        await takeDebugScreenshot('Before (Route2) - After projects page loaded')
+        
+        console.log('✅ beforeEach hook (Route 2) completed successfully')
+      } catch (error) {
+        console.log(`❌ beforeEach hook (Route 2) FAILED: ${error.message}`)
+        await takeDebugScreenshot('Before (Route2) - FATAL ERROR in beforeEach')
+        throw error
       }
-      
-      // Click "View all deliveries"
-      console.log('  → Clicking View all deliveries link')
-      const viewDeliveriesLink = await $('a=View all deliveries')
-      await viewDeliveriesLink.waitForClickable({ timeout: 10000 })
-      await takeDebugScreenshot('Before (Route2) - Before clicking View all deliveries')
-      await viewDeliveriesLink.click()
-      await takeDebugScreenshot('Before (Route2) - After clicking View all deliveries')
-      
-      // Wait for /projects URL
-      await browser.waitUntil(
-        async () => (await browser.getUrl()).includes('/projects'),
-        { timeout: 15000, timeoutMsg: 'URL did not navigate to /projects' }
-      )
-      await waitForPageLoad()
-      await takeDebugScreenshot('Before (Route2) - After projects page loaded')
-      
-      console.log('✅ beforeEach hook (Route 2) completed')
     })
 
     // ════════════════════════════════════════════════════════════════════════
