@@ -83,7 +83,7 @@ export const config = {
   commonCapabilities: {
     'bstack:options': {
       buildName: `test-run-${process.env.ENVIRONMENT}`,
-      projectName: 'aqie-privatebeta-test'
+      projectName: 'assurance-journey-tests'
     }
   },
   capabilities: [
@@ -152,7 +152,7 @@ export const config = {
         testObservabilityOptions: {
           user: process.env.BROWSERSTACK_USER,
           key: process.env.BROWSERSTACK_KEY,
-          projectName: 'aqie-privatebeta-test',
+          projectName: 'assurance-journey-tests',
           buildName: `test-run-${process.env.ENVIRONMENT}`
         },
         acceptInsecureCerts: true,
