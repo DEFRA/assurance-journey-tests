@@ -14,7 +14,7 @@ export const config = {
   // with `/`, the base url gets prepended, not including the path portion of your baseUrl.
   // If your `url` parameter starts without a scheme or `/` (like `some/path`), the base url
   // gets prepended directly.
-  baseUrl: `http://localhost:3000`,
+  baseUrl: `https://assurance-frontend.${process.env.ENVIRONMENT}.cdp-int.defra.cloud` || 'http://localhost:3000',
 
   user: process.env.BROWSERSTACK_USERNAME,
   key: process.env.BROWSERSTACK_KEY,
@@ -37,7 +37,12 @@ export const config = {
       'bstack:options': {
         browserVersion: 'latest',
         os: 'Windows',
-        osVersion: '11'
+        osVersion: '11',
+        buildName: 'GitHub Build',
+        sessionName: 'Journey Test',
+        local: true,
+        debug: true,
+        networkLogs: true
       }
     }
   ],
@@ -62,7 +67,7 @@ export const config = {
 
   execArgv: ['--loader', 'esm-module-alias/loader'],
 
-  logLevel: 'info',
+  logLevel: 'debug',
 
   // Number of failures before the test suite bails.
   bail: 0,
