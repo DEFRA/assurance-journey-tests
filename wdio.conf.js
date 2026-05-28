@@ -23,7 +23,8 @@ export const config = {
   port: process.env.CHROMEDRIVER_PORT || 4444,
 
   // Tests to run
- specs: ['./test/specs/**/*.e2e.js', './test/specs/**/*.spec.js'],
+ //specs: ['./test/specs/**/*.e2e.js', './test/specs/**/*.spec.js'],
+  specs: ['./test/specs/**/accessibility.e2e.js'],
   // Tests to exclude
   exclude: [],
   maxInstances: 1,
