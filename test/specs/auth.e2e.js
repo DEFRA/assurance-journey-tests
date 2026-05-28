@@ -1,4 +1,5 @@
 import dotenv from 'dotenv'
+import allure from '@wdio/allure-reporter'
 
 // Load environment variables from .env file if present
 // This will not override existing environment variables
@@ -36,10 +37,24 @@ async function handleUsernameScreen() {
     }
   )
 
+  async captureScreenshot(label) {
+    const screenshot = await browser.takeScreenshot()
+    allure.addAttachment(label, Buffer.from(screenshot, 'base64'), 'image/png')
+  }
+  
   // Wait for Microsoft login page to be fully loaded
   await browser.waitUntil(
     async () => {
       const url = await browser.getUrl()
+
+      const logs = await browser.getLogs('browser')
+      allure.addAttachment(
+      'Browser Logs',
+      JSON.stringify(logs, null, 2),
+      'text/plain')
+      this.captureScreenshot('Waiting for email field to be displayed')
+      
+      
       return (
         url.includes('login.microsoftonline.com') ||
         url.includes('microsoft.com/') ||
