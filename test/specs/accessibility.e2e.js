@@ -4,7 +4,7 @@ import {
   generateAccessibilityReports,
   generateAccessibilityReportIndex
 } from '../accessibility-checking.js'
-import allure from '@wdio/allure-reporter'
+
 
 /**
  * Helper function to handle the username screen during Azure AD login
@@ -21,19 +21,6 @@ async function handleUsernameScreen() {
       timeoutMsg: 'Page did not load completely'
     }
   )
-
-  async captureScreenshot(label) {
-    const screenshot = await browser.takeScreenshot()
-    allure.addAttachment(label, Buffer.from(screenshot, 'base64'), 'image/png')
-  }
-  
-  const logs = await browser.getLogs('browser')
-    allure.addAttachment(
-      'Browser Logs',
-      JSON.stringify(logs, null, 2),
-      'text/plain'
-    )
-    this.captureScreenshot('Waiting for email field to be displayed')
 
   // Wait for username input field and ensure it's interactable
   const usernameInput = await $('input[type="email"]')
