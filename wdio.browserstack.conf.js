@@ -23,7 +23,17 @@ export const config = {
       buildName: `assurance-journey-tests-${process.env.ENVIRONMENT}`
     }
   },
-  capabilities: browserStackCapabilities,
+  //capabilities: browserStackCapabilities,
+  
+capabilities: [{
+  browserName: 'Chrome',
+  'bstack:options': {
+    os: 'Windows',
+    osVersion: '11',
+    buildName: 'assurance-journey-tests',
+    sessionName: 'CDP run'
+  }
+}],
 
   services: [
     [
