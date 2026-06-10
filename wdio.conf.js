@@ -25,13 +25,12 @@ export const config = {
   // with `/`, the base url gets prepended, not including the path portion of your baseUrl.
   // If your `url` parameter starts without a scheme or `/` (like `some/path`), the base url
   // gets prepended directly.
-  baseUrl: `https://assurance-frontend.${process.env.ENVIRONMENT}.cdp-int.defra.cloud` || 'http://localhost:3000',
-
+  baseUrl: `https://assurance-frontend.${process.env.ENVIRONMENT}.cdp-int.defra.cloud`,
+  user: process.env.BROWSERSTACK_USER,
+  key: process.env.BROWSERSTACK_KEY,
   // Connection to remote chromedriver
   //hostname: process.env.CHROMEDRIVER_URL || '127.0.0.1',
   //port: process.env.CHROMEDRIVER_PORT || 4444,
-  user: process.env.BROWSERSTACK_USER,
-  key: process.env.BROWSERSTACK_KEY,
   // Tests to run
  //specs: ['./test/specs/**/*.e2e.js', './test/specs/**/*.spec.js'],
   specs: ['./test/specs/**/accessibility.e2e.js'],
