@@ -28,9 +28,10 @@ export const config = {
   baseUrl: `https://assurance-frontend.${process.env.ENVIRONMENT}.cdp-int.defra.cloud` || 'http://localhost:3000',
 
   // Connection to remote chromedriver
-  hostname: process.env.CHROMEDRIVER_URL || '127.0.0.1',
-  port: process.env.CHROMEDRIVER_PORT || 4444,
-
+  //hostname: process.env.CHROMEDRIVER_URL || '127.0.0.1',
+  //port: process.env.CHROMEDRIVER_PORT || 4444,
+  user: process.env.BROWSERSTACK_USER,
+  key: process.env.BROWSERSTACK_KEY,
   // Tests to run
  //specs: ['./test/specs/**/*.e2e.js', './test/specs/**/*.spec.js'],
   specs: ['./test/specs/**/accessibility.e2e.js'],
@@ -38,35 +39,53 @@ export const config = {
   exclude: [],
   maxInstances: 1,
 
+  // capabilities: [
+  //   {
+  //     // Outbound calls must go via the proxy
+  //     proxy: {
+  //       proxyType: 'manual',
+  //       httpProxy: 'localhost:3128',
+  //       sslProxy: 'localhost:3128'
+  //     },
+  //     browserName: 'chrome',
+  //     'goog:chromeOptions': {
+  //       args: [
+  //         '--headless', // Use headless mode
+  //         '--no-sandbox',
+  //         '--disable-infobars',
+  //         '--disable-gpu',
+  //         '--window-size=1920,1080',
+  //         '--enable-features=NetworkService,NetworkServiceInProcess',
+  //         '--password-store=basic',
+  //         '--use-mock-keychain',
+  //         '--dns-prefetch-disable',
+  //         '--disable-background-networking',
+  //         '--disable-remote-fonts',
+  //         '--ignore-certificate-errors',
+  //         '--disable-dev-shm-usage',
+  //         '--remote-debugging-port=9222'
+  //       ]
+  //     }
+  //   }
+  // ],
+
+  commonCapabilities: {
+    'bstack:options': {
+      buildName: `test-run-${process.env.ENVIRONMENT}`,
+      projectName: 'aqie-privatebeta-test'
+    }
+  },
   capabilities: [
     {
-      // Outbound calls must go via the proxy
-      proxy: {
-        proxyType: 'manual',
-        httpProxy: 'localhost:3128',
-        sslProxy: 'localhost:3128'
-      },
-      browserName: 'chrome',
-      'goog:chromeOptions': {
-        args: [
-          '--headless', // Use headless mode
-          '--no-sandbox',
-          '--disable-infobars',
-          '--disable-gpu',
-          '--window-size=1920,1080',
-          '--enable-features=NetworkService,NetworkServiceInProcess',
-          '--password-store=basic',
-          '--use-mock-keychain',
-          '--dns-prefetch-disable',
-          '--disable-background-networking',
-          '--disable-remote-fonts',
-          '--ignore-certificate-errors',
-          '--disable-dev-shm-usage',
-          '--remote-debugging-port=9222'
-        ]
+      'bstack:options': {
+      browserName: 'chromium',
+      deviceName: 'Samsung Galaxy S21',
+      osVersion: '11.0',
+      platformName: 'android'
       }
     }
   ],
+
 
   execArgv: ['--loader', 'esm-module-alias/loader'],
 
@@ -76,8 +95,35 @@ export const config = {
   bail: 0,
   waitforTimeout: 10000,
   waitforInterval: 200,
-  connectionRetryTimeout: 6000,
+  connectionRetryTimeout: 120000,
   connectionRetryCount: 3,
+
+  // Test runner services
+  // Services take over a specific job you don't want to take care of. They enhance
+  // your test setup with almost no effort. Unlike plugins, they don't add new
+  // commands. Instead, they hook themselves up into the test process.
+  services: [
+    [
+      'browserstack',
+      {
+        testObservability: true,
+        testObservabilityOptions: {
+          user: process.env.BROWSERSTACK_USER,
+          key: process.env.BROWSERSTACK_KEY,
+          projectName: 'aqie-privatebeta-test',
+          buildName: `test-run-${process.env.ENVIRONMENT}`
+        },
+        acceptInsecureCerts: true,
+        forceLocal: false,
+        browserstackLocal: true,
+        opts: {
+          proxyHost: 'localhost',
+          proxyPort: 3128
+        }
+      }
+    ]
+  ],
+  
   framework: 'mocha',
 
   reporters: [
