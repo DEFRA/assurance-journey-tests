@@ -80,7 +80,7 @@ export const config = {
       'bstack:options': {
       browserName: 'chromium',
       deviceName: 'Samsung Galaxy S23',
-      osVersion: '11.0',
+      osVersion: '13.0',
       platformName: 'android'
       }
     }
