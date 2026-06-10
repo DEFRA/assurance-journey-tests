@@ -3,6 +3,15 @@ const debug = process.env.DEBUG === 'true'
 const oneMinute = 60 * 1000
 const threeMinutes = 3 * 60 * 1000
 const oneHour = 60 * 60 * 1000
+import { ProxyAgent, setGlobalDispatcher } from 'undici'
+import { bootstrap } from 'global-agent'
+
+const dispatcher = new ProxyAgent({
+  uri: process.env.HTTP_PROXY
+})
+setGlobalDispatcher(dispatcher)
+bootstrap()
+global.GLOBAL_AGENT.HTTP_PROXY = process.env.HTTP_PROXY
 
 export const config = {
   //
