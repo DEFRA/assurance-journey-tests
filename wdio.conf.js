@@ -72,7 +72,7 @@ export const config = {
   commonCapabilities: {
     'bstack:options': {
       buildName: `test-run-${process.env.ENVIRONMENT}`,
-      projectName: 'aqie-privatebeta-test'
+      projectName: 'assurance-journey-tests'
     }
   },
   capabilities: [
