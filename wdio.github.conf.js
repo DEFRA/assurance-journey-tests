@@ -15,11 +15,13 @@ export const config = {
   // If your `url` parameter starts without a scheme or `/` (like `some/path`), the base url
   // gets prepended directly.
   baseUrl: `http://localhost:3000`,
+  user: process.env.BROWSERSTACK_USERNAME,
+  key: process.env.BROWSERSTACK_KEY,
 
   // Only connect to remote chromedriver if URL is explicitly provided
   ...(process.env.CHROMEDRIVER_URL && {
-    hostname: process.env.CHROMEDRIVER_URL,
-    port: process.env.CHROMEDRIVER_PORT || 4444
+    //hostname: process.env.CHROMEDRIVER_URL,
+    //port: process.env.CHROMEDRIVER_PORT || 4444
   }),
 
   // Tests to run
@@ -28,27 +30,62 @@ export const config = {
   exclude: [],
   maxInstances: 1,
 
+  // capabilities: [
+  //  {
+  //    browserName: 'chrome',
+  //    'goog:chromeOptions': {
+  //      args: [
+  //        '--no-sandbox',
+  //        '--disable-infobars',
+  //        '--headless',
+  //        '--disable-gpu',
+  //        '--window-size=1920,1080',
+  //        '--enable-features=NetworkService,NetworkServiceInProcess',
+  //        '--password-store=basic',
+  //        '--use-mock-keychain',
+  //        '--dns-prefetch-disable',
+  //        '--disable-background-networking',
+  //        '--disable-remote-fonts',
+  //        '--ignore-certificate-errors',
+  //        '--disable-dev-shm-usage'
+  //      ]
+  //    }
+  //  }
+  // ], 
+
+   commonCapabilities: {
+    'bstack:options': {
+      buildName: 'browserstack-build-1' // configure as required
+    }
+  },
+
   capabilities: [
     {
-      browserName: 'chrome',
-      'goog:chromeOptions': {
-        args: [
-          '--no-sandbox',
-          '--disable-infobars',
-          '--headless',
-          '--disable-gpu',
-          '--window-size=1920,1080',
-          '--enable-features=NetworkService,NetworkServiceInProcess',
-          '--password-store=basic',
-          '--use-mock-keychain',
-          '--dns-prefetch-disable',
-          '--disable-background-networking',
-          '--disable-remote-fonts',
-          '--ignore-certificate-errors',
-          '--disable-dev-shm-usage'
-        ]
+      browserName: 'Chrome', // Set these to whatever combination of browsers you require
+      'bstack:options': {
+        browserVersion: 'latest',
+        os: 'Windows',
+        osVersion: '11'
       }
     }
+  ],
+
+  services: [
+    [
+      'browserstack',
+      {
+        testObservability: true, // Disable if you do not want to use the browserstack test observer functionality
+        testObservabilityOptions: {
+          user: process.env.BROWSERSTACK_USERNAME,
+          key: process.env.BROWSERSTACK_KEY,
+          projectName: 'assurance-journey-tests', // should match project in browserstack
+          buildName: `assurance-journey-tests-${process.env.ENVIRONMENT}`
+        },
+        acceptInsecureCerts: true,
+        forceLocal: false,
+        browserstackLocal: true
+      }
+    ]
   ],
 
   execArgv: ['--loader', 'esm-module-alias/loader'],
